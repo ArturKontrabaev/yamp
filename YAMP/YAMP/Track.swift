@@ -8,7 +8,7 @@ struct Track {
     var displayString: String {
         if title.isEmpty { return "" }
         if artist.isEmpty { return title }
-        return "\(title) — \(artist)"
+        return "\(artist) — \(title)"
     }
 
     var menuTitle: String {
