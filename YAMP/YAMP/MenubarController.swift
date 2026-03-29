@@ -67,6 +67,17 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         }
     }
 
+    // MARK: - Hotkeys
+
+    func handleHotkeyAction(_ action: HotkeyManager.Action) {
+        switch action {
+        case .playPause: cdpCommand("play")
+        case .next: cdpCommand("next")
+        case .prev: cdpCommand("prev")
+        case .like: cdpCommand("like")
+        }
+    }
+
     // MARK: - NowPlayingPopoverDelegate
 
     func didTapPlayPause() { cdpCommand("play") }

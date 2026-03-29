@@ -6,13 +6,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        print("YAMP: starting...")
         trackProvider = NowPlayingTrackProvider()
-        print("YAMP: provider created")
         menubarController = MenubarController()
-        print("YAMP: menubar created")
+
+        HotkeyManager.shared.onAction = { [weak self] action in
+            self?.menubarController.handleHotkeyAction(action)
+        }
+        HotkeyManager.shared.registerAll()
+
         startPolling()
-        print("YAMP: polling started")
     }
 
     private func startPolling() {

@@ -18,6 +18,7 @@ swiftc \
     YAMP/Settings.swift \
     YAMP/NowPlayingTrackProvider.swift \
     YAMP/NowPlayingPopover.swift \
+    YAMP/HotkeyManager.swift \
     YAMP/SettingsWindow.swift \
     YAMP/MenubarController.swift \
     YAMP/AppDelegate.swift

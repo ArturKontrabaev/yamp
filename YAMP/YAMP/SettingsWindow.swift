@@ -2,6 +2,9 @@ import Cocoa
 
 class SettingsWindow {
     private var window: NSWindow?
+    private var hotkeyButtons: [HotkeyManager.Action: NSButton] = [:]
+    private var recordingAction: HotkeyManager.Action?
+    private var eventMonitor: Any?
 
     func show() {
         if let w = window {
@@ -11,7 +14,7 @@ class SettingsWindow {
         }
 
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 160),
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -22,33 +25,77 @@ class SettingsWindow {
 
         let cv = NSView(frame: w.contentView!.bounds)
 
+        var y: CGFloat = 280
+
+        // Display length
         let label = NSTextField(labelWithString: "Max display length:")
-        label.frame = NSRect(x: 20, y: 110, width: 160, height: 20)
+        label.frame = NSRect(x: 20, y: y, width: 160, height: 20)
         label.font = NSFont.systemFont(ofSize: 13)
         cv.addSubview(label)
+        y -= 28
 
         let slider = NSSlider(value: Double(Settings.shared.maxDisplayLength), minValue: 10, maxValue: 60, target: self, action: #selector(lengthChanged(_:)))
-        slider.frame = NSRect(x: 20, y: 82, width: 180, height: 20)
+        slider.frame = NSRect(x: 20, y: y, width: 240, height: 20)
         cv.addSubview(slider)
 
         let valLabel = NSTextField(labelWithString: "\(Settings.shared.maxDisplayLength)")
-        valLabel.frame = NSRect(x: 210, y: 82, width: 60, height: 20)
+        valLabel.frame = NSRect(x: 270, y: y, width: 60, height: 20)
         valLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         valLabel.tag = 100
         cv.addSubview(valLabel)
+        y -= 30
 
+        // Hide on pause
         let hideCheck = NSButton(checkboxWithTitle: "Show icon only when paused", target: self, action: #selector(hideToggled(_:)))
-        hideCheck.frame = NSRect(x: 20, y: 52, width: 260, height: 20)
+        hideCheck.frame = NSRect(x: 20, y: y, width: 300, height: 20)
         hideCheck.state = Settings.shared.hideTrackOnPause ? .on : .off
         cv.addSubview(hideCheck)
+        y -= 36
 
+        // Hotkeys header
+        let hkLabel = NSTextField(labelWithString: "Keyboard Shortcuts:")
+        hkLabel.frame = NSRect(x: 20, y: y, width: 200, height: 20)
+        hkLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        cv.addSubview(hkLabel)
+        y -= 6
+
+        // Hotkey rows
+        for action in HotkeyManager.Action.allCases {
+            y -= 28
+            let actionLabel = NSTextField(labelWithString: action.displayName)
+            actionLabel.frame = NSRect(x: 20, y: y, width: 120, height: 22)
+            actionLabel.font = NSFont.systemFont(ofSize: 13)
+            cv.addSubview(actionLabel)
+
+            let shortcut = HotkeyManager.shared.getShortcut(for: action)
+            let btnTitle = shortcut?.displayString ?? "Click to set"
+
+            let btn = NSButton(title: btnTitle, target: self, action: #selector(hotkeyButtonClicked(_:)))
+            btn.frame = NSRect(x: 150, y: y, width: 130, height: 24)
+            btn.bezelStyle = .rounded
+            btn.font = NSFont.systemFont(ofSize: 12)
+            btn.tag = HotkeyManager.Action.allCases.firstIndex(of: action)!
+            cv.addSubview(btn)
+            hotkeyButtons[action] = btn
+
+            let clearBtn = NSButton(title: "✕", target: self, action: #selector(clearHotkey(_:)))
+            clearBtn.frame = NSRect(x: 288, y: y, width: 30, height: 24)
+            clearBtn.bezelStyle = .rounded
+            clearBtn.font = NSFont.systemFont(ofSize: 11)
+            clearBtn.tag = btn.tag
+            cv.addSubview(clearBtn)
+        }
+
+        y -= 36
+
+        // Quit
         let quitBtn = NSButton(title: "Quit YAMP", target: self, action: #selector(quit))
         quitBtn.frame = NSRect(x: 20, y: 12, width: 100, height: 32)
         quitBtn.bezelStyle = .rounded
         cv.addSubview(quitBtn)
 
-        let ver = NSTextField(labelWithString: "YAMP v0.1")
-        ver.frame = NSRect(x: 200, y: 24, width: 80, height: 14)
+        let ver = NSTextField(labelWithString: "YAMP v0.3")
+        ver.frame = NSRect(x: 260, y: 16, width: 80, height: 14)
         ver.font = NSFont.systemFont(ofSize: 11)
         ver.textColor = NSColor.tertiaryLabelColor
         ver.alignment = .right
@@ -72,6 +119,59 @@ class SettingsWindow {
 
     @objc private func hideToggled(_ sender: NSButton) {
         Settings.shared.hideTrackOnPause = sender.state == .on
+    }
+
+    @objc private func hotkeyButtonClicked(_ sender: NSButton) {
+        let actions = HotkeyManager.Action.allCases
+        let action = actions[sender.tag]
+
+        // Start recording
+        recordingAction = action
+        sender.title = "Press shortcut..."
+
+        // Unregister all hotkeys while recording
+        HotkeyManager.shared.unregisterAll()
+
+        // Listen for key press
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self, let action = self.recordingAction else { return event }
+
+            let mods = HotkeyManager.carbonModifiers(from: event.modifierFlags)
+
+            // Need at least one modifier
+            if mods == 0 {
+                sender.title = "Need modifier key"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    let s = HotkeyManager.shared.getShortcut(for: action)
+                    sender.title = s?.displayString ?? "Click to set"
+                }
+                self.stopRecording()
+                return nil
+            }
+
+            let shortcut = HotkeyManager.Shortcut(keyCode: UInt32(event.keyCode), modifiers: mods)
+            HotkeyManager.shared.setShortcut(shortcut, for: action)
+            sender.title = shortcut.displayString
+
+            self.stopRecording()
+            return nil
+        }
+    }
+
+    @objc private func clearHotkey(_ sender: NSButton) {
+        let actions = HotkeyManager.Action.allCases
+        let action = actions[sender.tag]
+        HotkeyManager.shared.setShortcut(nil, for: action)
+        hotkeyButtons[action]?.title = "Click to set"
+    }
+
+    private func stopRecording() {
+        recordingAction = nil
+        if let m = eventMonitor {
+            NSEvent.removeMonitor(m)
+            eventMonitor = nil
+        }
+        HotkeyManager.shared.registerAll()
     }
 
     @objc private func quit() { NSApp.terminate(nil) }
