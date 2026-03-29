@@ -3,57 +3,70 @@ import Foundation
 let fm = FileManager.default
 let home = fm.homeDirectoryForCurrentUser.path
 
-// 1. Read Electron Preferences (often has app state)
-print("=== YandexMusic/Preferences ===")
-let prefsPath = "\(home)/Library/Application Support/YandexMusic/Preferences"
-if let data = fm.contents(atPath: prefsPath), let text = String(data: data, encoding: .utf8) {
+// 1. yandex-music-app config
+print("=== yandex-music-app/config.json ===")
+let cfg = "\(home)/Library/Application Support/yandex-music-app/config.json"
+if let data = fm.contents(atPath: cfg), let text = String(data: data, encoding: .utf8) {
     print(String(text.prefix(2000)))
 }
 
-// 2. Read config.json
+// 2. Local Storage files
 print("")
-print("=== YandexMusic/config.json ===")
-let configPath = "\(home)/Library/Application Support/YandexMusic/config.json"
-if let data = fm.contents(atPath: configPath), let text = String(data: data, encoding: .utf8) {
-    print(text)
-}
-
-// 3. Check yandex-music-app folder
-print("")
-print("=== yandex-music-app contents ===")
-let ymAppPath = "\(home)/Library/Application Support/yandex-music-app"
-if let contents = try? fm.contentsOfDirectory(atPath: ymAppPath) {
+print("=== yandex-music-app/Local Storage ===")
+let lsPath = "\(home)/Library/Application Support/yandex-music-app/Local Storage"
+if let contents = try? fm.contentsOfDirectory(atPath: lsPath) {
     for item in contents {
-        let fullPath = "\(ymAppPath)/\(item)"
-        var isDir: ObjCBool = false
-        fm.fileExists(atPath: fullPath, isDirectory: &isDir)
-        let size = (try? fm.attributesOfItem(atPath: fullPath)[.size] as? Int) ?? 0
-        print("  \(item) \(isDir.boolValue ? "[DIR]" : "[\(size) bytes]")")
-    }
-}
-
-// 4. Read plist
-print("")
-print("=== ru.yandex.desktop.music.plist ===")
-let plistPath = "\(home)/Library/Preferences/ru.yandex.desktop.music.plist"
-if let dict = NSDictionary(contentsOfFile: plistPath) {
-    for (key, value) in dict {
-        let k = "\(key)"
-        let v = "\(value)"
-        if v.count > 200 {
-            print("  \(k) = \(v.prefix(200))...")
-        } else {
-            print("  \(k) = \(v)")
+        let full = "\(lsPath)/\(item)"
+        let size = (try? fm.attributesOfItem(atPath: full)[.size] as? Int) ?? 0
+        print("  \(item) [\(size) bytes]")
+        // Try to read small files as text
+        if size < 50000, let data = fm.contents(atPath: full) {
+            // Try to find readable strings
+            if let text = String(data: data, encoding: .utf8) {
+                let interesting = text.components(separatedBy: "\0")
+                    .filter { $0.count > 3 && $0.count < 500 }
+                    .filter { $0.contains("track") || $0.contains("title") || $0.contains("artist")
+                        || $0.contains("playing") || $0.contains("queue") || $0.contains("current")
+                        || $0.contains("song") || $0.contains("name") || $0.contains("album") }
+                for s in interesting.prefix(10) {
+                    print("    >>> \(s)")
+                }
+            }
         }
     }
 }
 
-// 5. Check Local State / Session Storage
+// 3. Also check YandexMusic Local Storage if exists
 print("")
-print("=== Session Storage ===")
-let sessionPath = "\(home)/Library/Application Support/YandexMusic/Session Storage"
-if let contents = try? fm.contentsOfDirectory(atPath: sessionPath) {
+print("=== YandexMusic/Local Storage ===")
+let ls2 = "\(home)/Library/Application Support/YandexMusic/Local Storage"
+if let contents = try? fm.contentsOfDirectory(atPath: ls2) {
     for item in contents {
-        print("  \(item)")
+        let full = "\(ls2)/\(item)"
+        let size = (try? fm.attributesOfItem(atPath: full)[.size] as? Int) ?? 0
+        print("  \(item) [\(size) bytes]")
+    }
+} else {
+    print("  not found")
+}
+
+// 4. Check WebStorage
+print("")
+print("=== YandexMusic/WebStorage ===")
+let ws = "\(home)/Library/Application Support/YandexMusic/WebStorage"
+if let contents = try? fm.contentsOfDirectory(atPath: ws) {
+    for item in contents {
+        let full = "\(ws)/\(item)"
+        var isDir: ObjCBool = false
+        fm.fileExists(atPath: full, isDirectory: &isDir)
+        let size = (try? fm.attributesOfItem(atPath: full)[.size] as? Int) ?? 0
+        print("  \(item) \(isDir.boolValue ? "[DIR]" : "[\(size) bytes]")")
+        if isDir.boolValue, let sub = try? fm.contentsOfDirectory(atPath: full) {
+            for s in sub.prefix(10) {
+                let sf = "\(full)/\(s)"
+                let ss = (try? fm.attributesOfItem(atPath: sf)[.size] as? Int) ?? 0
+                print("    \(s) [\(ss) bytes]")
+            }
+        }
     }
 }
