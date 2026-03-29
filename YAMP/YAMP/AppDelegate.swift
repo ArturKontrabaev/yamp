@@ -66,11 +66,64 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var cdpCheckCounter = 0
+
     private func updateTrack() {
+        cdpCheckCounter += 1
+
+        // Every 5 polls (~10 sec), check if YM is running without CDP
+        if cdpCheckCounter % 5 == 0 {
+            DispatchQueue.global().async { [weak self] in
+                self?.ensureYandexMusicWithCDPBackground()
+            }
+        }
+
         trackProvider.getCurrentTrack { [weak self] track in
             DispatchQueue.main.async {
                 self?.menubarController.update(with: track)
             }
+        }
+    }
+
+    private func ensureYandexMusicWithCDPBackground() {
+        // Check if YM process is running
+        let check = Process()
+        check.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        check.arguments = ["-f", "Яндекс Музыка"]
+        check.standardOutput = FileHandle.nullDevice
+        check.standardError = FileHandle.nullDevice
+        try? check.run()
+        check.waitUntilExit()
+        let ymRunning = check.terminationStatus == 0
+
+        if !ymRunning { return } // Not running, nothing to fix
+
+        // YM is running — check CDP
+        let cdpAvailable: Bool
+        if let url = URL(string: "http://localhost:9222/json"),
+           let data = try? Data(contentsOf: url),
+           !data.isEmpty {
+            cdpAvailable = true
+        } else {
+            cdpAvailable = false
+        }
+
+        if !cdpAvailable {
+            // YM running without CDP — restart it
+            let kill = Process()
+            kill.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+            kill.arguments = ["Яндекс Музыка"]
+            kill.standardOutput = FileHandle.nullDevice
+            kill.standardError = FileHandle.nullDevice
+            try? kill.run()
+            kill.waitUntilExit()
+
+            Thread.sleep(forTimeInterval: 1.5)
+
+            let launch = Process()
+            launch.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            launch.arguments = ["-a", "Яндекс Музыка", "--args", "--remote-debugging-port=9222"]
+            try? launch.run()
         }
     }
 }
