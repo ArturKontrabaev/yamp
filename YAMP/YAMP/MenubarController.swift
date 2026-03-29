@@ -244,19 +244,19 @@ class MenubarController: NSObject {
     // MARK: - Actions
 
     @objc private func togglePlayPause() {
-        CDPEval.run(js: "(document.querySelector('[aria-label=\"Playback\"]') || document.querySelector('[aria-label=\"Pause\"]'))?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "(document.querySelector('[aria-label=\"Playback\"]') || document.querySelector('[aria-label=\"Pause\"]'))?.click()") { _ in }
     }
 
     @objc private func nextTrack() {
-        CDPEval.run(js: "document.querySelector('[aria-label=\"Next song\"]')?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "document.querySelector('[aria-label=\"Next song\"]')?.click()") { _ in }
     }
 
     @objc private func prevTrack() {
-        CDPEval.run(js: "document.querySelector('[aria-label=\"Previous song\"]')?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "document.querySelector('[aria-label=\"Previous song\"]')?.click()") { _ in }
     }
 
     @objc private func likeTrack() {
-        CDPEval.run(js: "document.querySelector('[aria-label=\"Like\"]')?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "document.querySelector('[aria-label=\"Like\"]')?.click()") { _ in }
     }
 
     @objc private func showLyrics() {
@@ -269,7 +269,7 @@ class MenubarController: NSObject {
             return 'NO_LYRICS';
         })()
         """
-        CDPEval.run(js: js) { [weak self] result in
+        CDPConnection.shared.evaluate(js: js) { [weak self] result in
             DispatchQueue.main.async {
                 let text = result.isEmpty || result == "NO_LYRICS"
                     ? "Lyrics not available for this track"
@@ -324,110 +324,3 @@ class MenubarController: NSObject {
     }
 }
 
-// MARK: - CDP helper for one-off JS evaluation
-
-class CDPEval {
-    static func run(js: String, completion: @escaping (String) -> Void) {
-        guard let url = URL(string: "http://localhost:9222/json") else {
-            completion("")
-            return
-        }
-
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data,
-                  let pages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-                completion("")
-                return
-            }
-
-            var pageId: String?
-            for p in pages {
-                if p["type"] as? String == "page", (p["url"] as? String ?? "").contains("music") {
-                    pageId = p["id"] as? String
-                    break
-                }
-            }
-
-            guard let id = pageId else { completion(""); return }
-
-            DispatchQueue.global().async {
-                let wsUrl = "ws://localhost:9222/devtools/page/\(id)"
-                guard let url = URL(string: wsUrl), let host = url.host, let port = url.port else {
-                    completion("")
-                    return
-                }
-
-                let sock = socket(AF_INET, SOCK_STREAM, 0)
-                guard sock >= 0 else { completion(""); return }
-
-                var addr = sockaddr_in()
-                addr.sin_family = sa_family_t(AF_INET)
-                addr.sin_port = in_port_t(port).bigEndian
-                guard let he = gethostbyname(host) else { close(sock); completion(""); return }
-                memcpy(&addr.sin_addr, he.pointee.h_addr_list[0], Int(he.pointee.h_length))
-
-                let c = withUnsafePointer(to: &addr) {
-                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
-                }
-                guard c == 0 else { close(sock); completion(""); return }
-
-                let fh = FileHandle(fileDescriptor: sock, closeOnDealloc: true)
-
-                var kb = [UInt8](repeating: 0, count: 16)
-                _ = SecRandomCopyBytes(kSecRandomDefault, 16, &kb)
-                let key = Data(kb).base64EncodedString()
-                let path = url.path
-                fh.write("GET \(path) HTTP/1.1\r\nHost: \(host):\(port)\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: \(key)\r\nSec-WebSocket-Version: 13\r\n\r\n".data(using: .utf8)!)
-
-                var hdr = Data()
-                while !hdr.contains("\r\n\r\n".data(using: .utf8)!) {
-                    let ch = fh.readData(ofLength: 1)
-                    if ch.isEmpty { break }
-                    hdr.append(ch)
-                }
-
-                let msg: [String: Any] = ["id": 1, "method": "Runtime.evaluate", "params": ["expression": js, "returnByValue": true] as [String: Any]]
-                guard let md = try? JSONSerialization.data(withJSONObject: msg), let ms = String(data: md, encoding: .utf8) else {
-                    try? fh.close(); completion(""); return
-                }
-
-                let pl = Array(ms.utf8)
-                var fr = Data([0x81])
-                var mk = [UInt8](repeating: 0, count: 4)
-                _ = SecRandomCopyBytes(kSecRandomDefault, 4, &mk)
-                if pl.count < 126 { fr.append(UInt8(0x80 | pl.count)) }
-                else { fr.append(0xFE); fr.append(UInt8((pl.count >> 8) & 0xFF)); fr.append(UInt8(pl.count & 0xFF)) }
-                fr.append(contentsOf: mk)
-                fr.append(contentsOf: pl.enumerated().map { $0.element ^ mk[$0.offset % 4] })
-                fh.write(fr)
-
-                // Read response
-                let rh = fh.readData(ofLength: 2)
-                guard rh.count == 2 else { try? fh.close(); completion(""); return }
-                var len = Int(rh[1] & 0x7F)
-                if len == 126 { let ld = fh.readData(ofLength: 2); len = Int(ld[0]) << 8 | Int(ld[1]) }
-                else if len == 127 { let ld = fh.readData(ofLength: 8); len = 0; for i in 0..<8 { len = (len << 8) | Int(ld[i]) } }
-                var rd = Data()
-                while rd.count < len { let ch = fh.readData(ofLength: len - rd.count); if ch.isEmpty { break }; rd.append(ch) }
-                try? fh.close()
-
-                guard let _ = String(data: rd, encoding: .utf8),
-                      let ro = try? JSONSerialization.jsonObject(with: rd) as? [String: Any],
-                      let rr = ro["result"] as? [String: Any],
-                      let ri = rr["result"] as? [String: Any],
-                      let rv = ri["value"] as? String else {
-                    completion("")
-                    return
-                }
-                completion(rv)
-            }
-        }.resume()
-    }
-}
-
-private extension Data {
-    func contains(_ other: Data) -> Bool {
-        guard other.count <= self.count else { return false }
-        return self.range(of: other) != nil
-    }
-}

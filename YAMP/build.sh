@@ -28,6 +28,7 @@ swiftc \
     YAMP/main.swift \
     YAMP/Track.swift \
     YAMP/Settings.swift \
+    YAMP/CDPConnection.swift \
     YAMP/NowPlayingTrackProvider.swift \
     YAMP/MenubarController.swift \
     YAMP/AppDelegate.swift
