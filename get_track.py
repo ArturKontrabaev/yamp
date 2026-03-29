@@ -124,8 +124,11 @@ JS_TRACK = """
     var likeBtn = bar.querySelector('[aria-label="Like"]');
     var isLiked = false;
     if (likeBtn) {
-        var likeCls = likeBtn.className || '';
-        isLiked = likeCls.includes('liked') || likeCls.includes('Liked') || likeCls.includes('zIMib');
+        var useEl = likeBtn.querySelector('use');
+        if (useEl) {
+            var href = useEl.getAttribute('xlink:href') || useEl.getAttribute('href') || '';
+            isLiked = href.includes('liked');
+        }
     }
 
     return JSON.stringify({title: title, artist: artist, playing: isPlaying, artwork: artworkURL, liked: isLiked});
