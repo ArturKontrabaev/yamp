@@ -1,69 +1,43 @@
 import Cocoa
 
-// Approach 1: Try Accessibility API to read UI elements
-let script1 = """
+let script = """
 tell application "System Events"
     tell process "Яндекс Музыка"
-        set uiDesc to entire contents of front window
         set output to ""
-        repeat with elem in uiDesc
-            try
-                set r to role of elem
-                set v to value of elem as text
-                if v is not "" and v is not missing value then
-                    set output to output & r & ": " & v & linefeed
-                end if
-            end try
-        end repeat
+        tell front window
+            set allElems to every UI element
+            repeat with elem in allElems
+                try
+                    set r to role of elem
+                    set d to description of elem
+                    set t to title of elem
+                    set v to value of elem
+                    set output to output & r & " | title:" & (t as text) & " | desc:" & (d as text) & " | val:" & (v as text) & linefeed
+                end try
+                try
+                    set subElems to every UI element of elem
+                    repeat with sub in subElems
+                        try
+                            set r2 to role of sub
+                            set d2 to description of sub
+                            set t2 to title of sub
+                            set v2 to value of sub
+                            set output to output & "  " & r2 & " | title:" & (t2 as text) & " | desc:" & (d2 as text) & " | val:" & (v2 as text) & linefeed
+                        end try
+                    end repeat
+                end try
+            end repeat
+        end tell
         return output
     end tell
 end tell
 """
 
-// Approach 2: Try reading from browser (if web version is open)
-let script2 = """
-tell application "System Events"
-    set browserList to {"Safari", "Google Chrome", "Yandex"}
-    repeat with browserName in browserList
-        if exists process browserName then
-            tell process browserName
-                repeat with w in windows
-                    set t to name of w
-                    if t contains "Яндекс Музыка" or t contains "Yandex Music" then
-                        return "BROWSER:" & t
-                    end if
-                end repeat
-            end tell
-        end if
-    end repeat
-    return "NO_BROWSER_TAB"
-end tell
-"""
-
-print("=== Accessibility (UI elements) ===")
 var error: NSDictionary?
-let as1 = NSAppleScript(source: script1)
+let as1 = NSAppleScript(source: script)
 if let result = as1?.executeAndReturnError(&error) {
-    let text = result.stringValue ?? ""
-    // Print first 2000 chars
-    if text.isEmpty {
-        print("No UI elements found (need Accessibility permission)")
-        print("Go to: System Settings > Privacy & Security > Accessibility")
-        print("Add Terminal.app")
-    } else {
-        print(String(text.prefix(2000)))
-    }
-} else {
-    print("Error: \(error?["NSAppleScriptErrorMessage"] ?? "unknown")")
-    print("Likely need Accessibility permission for Terminal")
-    print("Go to: System Settings > Privacy & Security > Accessibility > add Terminal")
-}
-
-print("")
-print("=== Browser tab check ===")
-let as2 = NSAppleScript(source: script2)
-if let result = as2?.executeAndReturnError(&error) {
-    print(result.stringValue ?? "empty")
+    let text = result.stringValue ?? "empty"
+    print(String(text.prefix(3000)))
 } else {
     print("Error: \(error?["NSAppleScriptErrorMessage"] ?? "unknown")")
 }
