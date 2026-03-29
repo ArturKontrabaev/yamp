@@ -14,7 +14,7 @@ class SettingsWindow {
         }
 
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 450),
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 490),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -25,7 +25,7 @@ class SettingsWindow {
 
         let cv = NSView(frame: w.contentView!.bounds)
 
-        var y: CGFloat = 410
+        var y: CGFloat = 450
 
         // Display length
         let label = NSTextField(labelWithString: "Max display length:")
@@ -63,6 +63,25 @@ class SettingsWindow {
         fontVal.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         fontVal.tag = 101
         cv.addSubview(fontVal)
+        y -= 30
+
+        // Icon size
+        let iconSzLabel = NSTextField(labelWithString: "Icon size:")
+        iconSzLabel.frame = NSRect(x: 20, y: y, width: 120, height: 20)
+        iconSzLabel.font = NSFont.systemFont(ofSize: 13)
+        cv.addSubview(iconSzLabel)
+
+        let iconSzSlider = NSSlider(value: Double(Settings.shared.menuBarIconSize), minValue: 12, maxValue: 22, target: self, action: #selector(iconSizeChanged(_:)))
+        iconSzSlider.frame = NSRect(x: 150, y: y, width: 140, height: 20)
+        iconSzSlider.numberOfTickMarks = 11
+        iconSzSlider.allowsTickMarkValuesOnly = true
+        cv.addSubview(iconSzSlider)
+
+        let iconSzVal = NSTextField(labelWithString: "\(Settings.shared.menuBarIconSize)pt")
+        iconSzVal.frame = NSRect(x: 300, y: y, width: 40, height: 20)
+        iconSzVal.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        iconSzVal.tag = 102
+        cv.addSubview(iconSzVal)
         y -= 30
 
         // Icon picker
@@ -160,6 +179,17 @@ class SettingsWindow {
                 if let l = sub as? NSTextField, l.tag == 100 { l.stringValue = "\(v)" }
             }
         }
+    }
+
+    @objc private func iconSizeChanged(_ sender: NSSlider) {
+        let v = Int(sender.doubleValue)
+        Settings.shared.menuBarIconSize = v
+        if let cv = sender.superview {
+            for sub in cv.subviews {
+                if let l = sub as? NSTextField, l.tag == 102 { l.stringValue = "\(v)pt" }
+            }
+        }
+        NotificationCenter.default.post(name: NSNotification.Name("YAMPIconChanged"), object: nil)
     }
 
     @objc private func fontSizeChanged(_ sender: NSSlider) {

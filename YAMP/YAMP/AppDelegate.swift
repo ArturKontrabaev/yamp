@@ -16,6 +16,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         HotkeyManager.shared.registerAll()
 
+        // App menu with Cmd+Q
+        let appMenu = NSMenu()
+        appMenu.addItem(NSMenuItem(title: "Quit YAMP", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let menuItem = NSMenuItem()
+        menuItem.submenu = appMenu
+        NSApp.mainMenu = NSMenu()
+        NSApp.mainMenu?.addItem(menuItem)
 
         startPolling()
     }

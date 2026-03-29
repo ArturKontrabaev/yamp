@@ -25,6 +25,11 @@ class Settings {
         set { defaults.set(newValue, forKey: "menuBarFontSize") }
     }
 
+    var menuBarIconSize: Int {
+        get { defaults.integer(forKey: "menuBarIconSize").clamped(12, 22) }
+        set { defaults.set(newValue, forKey: "menuBarIconSize") }
+    }
+
     var menuBarIcon: String {
         get { defaults.string(forKey: "menuBarIcon") ?? "music.quarternote.3" }
         set { defaults.set(newValue, forKey: "menuBarIcon") }
@@ -41,7 +46,7 @@ class Settings {
     ]
 
     private init() {
-        defaults.register(defaults: ["maxDisplayLength": 30, "hideTrackOnPause": true, "menuBarIcon": "music.quarternote.3", "menuBarFontSize": 12])
+        defaults.register(defaults: ["maxDisplayLength": 30, "hideTrackOnPause": true, "menuBarIcon": "music.quarternote.3", "menuBarFontSize": 12, "menuBarIconSize": 16])
     }
 }
 

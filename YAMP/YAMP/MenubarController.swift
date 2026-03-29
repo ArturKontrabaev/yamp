@@ -36,17 +36,17 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     func applyIcon() {
         let iconId = Settings.shared.menuBarIcon
         let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
-        let size = CGFloat(Settings.shared.menuBarFontSize)
+        let iconSize = CGFloat(Settings.shared.menuBarIconSize)
         if opt.isSFSymbol {
-            let config = NSImage.SymbolConfiguration(pointSize: size, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
             let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")?.withSymbolConfiguration(config)
             img?.isTemplate = true
             statusItem.button?.image = img
+            statusItem.button?.imagePosition = .imageLeading
             statusItem.button?.title = ""
         } else {
             statusItem.button?.image = nil
             statusItem.button?.title = opt.id
-            statusItem.button?.font = NSFont.systemFont(ofSize: size, weight: .regular)
         }
     }
 
@@ -54,25 +54,31 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         let maxLen = Settings.shared.maxDisplayLength
         let showIcon = track.title.isEmpty || (!track.isPlaying && Settings.shared.hideTrackOnPause)
 
-        if showIcon {
-            let iconId = Settings.shared.menuBarIcon
-            let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
-            if opt.isSFSymbol {
-                statusItem.button?.title = ""
-                let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-                let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")?.withSymbolConfiguration(config)
-                img?.isTemplate = true
-                statusItem.button?.image = img
-            } else {
-                statusItem.button?.image = nil
-                statusItem.button?.title = opt.id
-                statusItem.button?.font = NSFont.systemFont(ofSize: CGFloat(Settings.shared.menuBarFontSize), weight: .regular)
-            }
+        let iconId = Settings.shared.menuBarIcon
+        let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
+        let fontSize = CGFloat(Settings.shared.menuBarFontSize)
+        let iconSize = CGFloat(Settings.shared.menuBarIconSize)
+
+        if opt.isSFSymbol {
+            let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+            let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")?.withSymbolConfiguration(config)
+            img?.isTemplate = true
+            statusItem.button?.image = img
+            statusItem.button?.imagePosition = .imageLeading
         } else {
             statusItem.button?.image = nil
-            statusItem.button?.title = track.truncatedDisplay(maxLength: maxLen)
-            statusItem.button?.font = NSFont.systemFont(ofSize: CGFloat(Settings.shared.menuBarFontSize), weight: .regular)
         }
+
+        if showIcon {
+            if !opt.isSFSymbol {
+                statusItem.button?.title = opt.id
+            } else {
+                statusItem.button?.title = ""
+            }
+        } else {
+            statusItem.button?.title = track.truncatedDisplay(maxLength: maxLen)
+        }
+        statusItem.button?.font = NSFont.systemFont(ofSize: fontSize, weight: .regular)
         currentTrack = track
         popoverView.update(with: track)
     }
