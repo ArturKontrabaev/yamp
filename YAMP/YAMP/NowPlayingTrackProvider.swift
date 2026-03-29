@@ -29,7 +29,10 @@ class NowPlayingTrackProvider {
             var currentTime = 0;
             var duration = 0;
             var audio = document.querySelector('audio');
-            if (audio) { currentTime = audio.currentTime || 0; duration = audio.duration || 0; }
+            if (audio) {
+                currentTime = isFinite(audio.currentTime) ? audio.currentTime : 0;
+                duration = isFinite(audio.duration) ? audio.duration : 0;
+            }
             return JSON.stringify({title: title, artist: artist, playing: isPlaying, artwork: artworkURL, currentTime: currentTime, duration: duration});
         })()
         """
