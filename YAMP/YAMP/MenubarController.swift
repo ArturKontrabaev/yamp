@@ -94,6 +94,33 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
 
     private func cdpCommand(_ cmd: String) {
         DispatchQueue.global().async {
+            // Check if CDP is available
+            let cdpAvailable: Bool
+            if let url = URL(string: "http://localhost:9222/json"),
+               let data = try? Data(contentsOf: url),
+               !data.isEmpty {
+                cdpAvailable = true
+            } else {
+                cdpAvailable = false
+            }
+
+            if !cdpAvailable {
+                // Launch Yandex Music with CDP
+                let launch = Process()
+                launch.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+                launch.arguments = ["-a", "Яндекс Музыка", "--args", "--remote-debugging-port=9222"]
+                try? launch.run()
+
+                // Wait for CDP
+                for _ in 0..<10 {
+                    Thread.sleep(forTimeInterval: 1.0)
+                    if let url = URL(string: "http://localhost:9222/json"),
+                       let _ = try? Data(contentsOf: url) {
+                        break
+                    }
+                }
+            }
+
             let scriptPath = NSHomeDirectory() + "/yamp/cdp_click.py"
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
