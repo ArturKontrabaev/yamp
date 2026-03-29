@@ -80,10 +80,15 @@ class MenubarController: NSObject {
     }
 
     @objc private func togglePlayPause() {
-        cdpClick(ariaLabel: "Playback")
-        // Try pause too in case it's playing
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { [self] in
-            cdpClick(ariaLabel: "Pause")
+        DispatchQueue.global().async {
+            let js = "(document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Playback\"]') || document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Pause\"]'))?.click()"
+            let scriptPath = NSHomeDirectory() + "/yamp/cdp_click.py"
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["python3", scriptPath, js]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try? process.run()
         }
     }
 
