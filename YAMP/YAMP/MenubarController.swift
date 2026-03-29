@@ -136,7 +136,7 @@ class MenubarController: NSObject {
     private func makeButton(title: String, x: CGFloat, action: Selector) -> NSButton {
         let btn = NSButton(frame: NSRect(x: x, y: 2, width: 28, height: 28))
         btn.title = title
-        btn.bezelStyle = .accessoryBarAction
+        btn.bezelStyle = .recessed
         btn.isBordered = true
         btn.font = NSFont.systemFont(ofSize: 14)
         btn.target = self
