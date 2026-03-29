@@ -5,6 +5,8 @@ class NowPlayingPopover: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let artistLabel = NSTextField(labelWithString: "")
     private let artworkView = NSImageView()
+    private let progressBar = NSProgressIndicator()
+    private let timeLabel = NSTextField(labelWithString: "")
     private let prevButton = NSButton()
     private let playPauseButton = NSButton()
     private let nextButton = NSButton()
@@ -23,11 +25,16 @@ class NowPlayingPopover: NSView {
         setup()
     }
 
+    // Layout: 296 x 148
+    // [16] artwork(56x56) [12] title/artist [16]
+    // [16] progress bar [16]
+    // [16] controls [16]
+
     private func setup() {
         wantsLayer = true
 
-        // Artwork placeholder
-        artworkView.frame = NSRect(x: 16, y: 56, width: 56, height: 56)
+        // Artwork
+        artworkView.frame = NSRect(x: 16, y: 76, width: 56, height: 56)
         artworkView.imageScaling = .scaleProportionallyUpOrDown
         artworkView.wantsLayer = true
         artworkView.layer?.cornerRadius = 8
@@ -36,7 +43,7 @@ class NowPlayingPopover: NSView {
         addSubview(artworkView)
 
         // Title
-        titleLabel.frame = NSRect(x: 84, y: 84, width: 196, height: 22)
+        titleLabel.frame = NSRect(x: 84, y: 104, width: 196, height: 22)
         titleLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         titleLabel.textColor = NSColor.labelColor
         titleLabel.lineBreakMode = .byTruncatingTail
@@ -44,15 +51,32 @@ class NowPlayingPopover: NSView {
         addSubview(titleLabel)
 
         // Artist
-        artistLabel.frame = NSRect(x: 84, y: 62, width: 196, height: 18)
+        artistLabel.frame = NSRect(x: 84, y: 84, width: 196, height: 18)
         artistLabel.font = NSFont.systemFont(ofSize: 12, weight: .regular)
         artistLabel.textColor = NSColor.secondaryLabelColor
         artistLabel.lineBreakMode = .byTruncatingTail
         artistLabel.maximumNumberOfLines = 1
         addSubview(artistLabel)
 
+        // Progress bar
+        progressBar.frame = NSRect(x: 16, y: 60, width: 264, height: 4)
+        progressBar.style = .bar
+        progressBar.minValue = 0
+        progressBar.maxValue = 100
+        progressBar.doubleValue = 0
+        progressBar.isIndeterminate = false
+        progressBar.controlSize = .small
+        addSubview(progressBar)
+
+        // Time label
+        timeLabel.frame = NSRect(x: 16, y: 42, width: 264, height: 14)
+        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        timeLabel.textColor = NSColor.tertiaryLabelColor
+        timeLabel.alignment = .center
+        addSubview(timeLabel)
+
         // Control buttons
-        let buttonY: CGFloat = 16
+        let buttonY: CGFloat = 8
         let buttonSize: CGFloat = 32
 
         setupButton(prevButton, title: "⏮", x: 60, y: buttonY, size: buttonSize, action: #selector(prevTapped))
@@ -79,14 +103,18 @@ class NowPlayingPopover: NSView {
         self.track = track
         titleLabel.stringValue = track.title.isEmpty ? "Not Playing" : track.title
         artistLabel.stringValue = track.artist
+        playPauseButton.title = track.isPlaying ? "⏸" : "▶"
 
-        if track.isPlaying {
-            playPauseButton.title = "⏸"
+        // Progress
+        if track.duration > 0 {
+            progressBar.doubleValue = (track.currentTime / track.duration) * 100
+            timeLabel.stringValue = "\(formatTime(track.currentTime)) / \(formatTime(track.duration))"
         } else {
-            playPauseButton.title = "▶"
+            progressBar.doubleValue = 0
+            timeLabel.stringValue = ""
         }
 
-        // Load artwork
+        // Artwork
         if let url = track.artworkURL, !url.isEmpty {
             loadArtwork(urlString: url)
         } else {
@@ -94,7 +122,16 @@ class NowPlayingPopover: NSView {
         }
     }
 
+    private func formatTime(_ seconds: Double) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+
+    private var lastArtworkURL: String = ""
     private func loadArtwork(urlString: String) {
+        guard urlString != lastArtworkURL else { return }
+        lastArtworkURL = urlString
         guard let url = URL(string: urlString) else { return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data = data, let image = NSImage(data: data) else { return }
