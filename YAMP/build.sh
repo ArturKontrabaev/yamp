@@ -30,6 +30,7 @@ swiftc \
     YAMP/Settings.swift \
     YAMP/CDPConnection.swift \
     YAMP/NowPlayingTrackProvider.swift \
+    YAMP/NowPlayingPopover.swift \
     YAMP/MenubarController.swift \
     YAMP/AppDelegate.swift
 

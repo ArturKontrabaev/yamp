@@ -4,6 +4,7 @@ struct Track {
     let title: String
     let artist: String
     let isPlaying: Bool
+    let artworkURL: String?
 
     var displayString: String {
         if title.isEmpty { return "" }
@@ -12,12 +13,12 @@ struct Track {
     }
 
     var menuTitle: String {
-        if title.isEmpty { return "No track" }
+        if title.isEmpty { return "Not Playing" }
         return title
     }
 
     var menuArtist: String {
-        if artist.isEmpty { return "—" }
+        if artist.isEmpty { return "" }
         return artist
     }
 
@@ -27,5 +28,5 @@ struct Track {
         return String(s.prefix(maxLength - 1)) + "…"
     }
 
-    static let empty = Track(title: "", artist: "", isPlaying: false)
+    static let empty = Track(title: "", artist: "", isPlaying: false, artworkURL: nil)
 }

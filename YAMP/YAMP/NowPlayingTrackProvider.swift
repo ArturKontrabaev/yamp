@@ -23,7 +23,10 @@ class NowPlayingTrackProvider {
             var pauseBtn = document.querySelector('[aria-label="Pause"]');
             var playBtn = document.querySelector('[aria-label="Playback"]');
             var isPlaying = pauseBtn !== null && playBtn === null;
-            return JSON.stringify({title: title, artist: artist, playing: isPlaying});
+            var artworkURL = '';
+            var imgEl = document.querySelector('[class*="PlayerBarDesktop"] img');
+            if (imgEl) artworkURL = imgEl.src || '';
+            return JSON.stringify({title: title, artist: artist, playing: isPlaying, artwork: artworkURL});
         })()
         """
 
@@ -38,7 +41,8 @@ class NowPlayingTrackProvider {
             let title = obj["title"] as? String ?? ""
             let artist = obj["artist"] as? String ?? ""
             let isPlaying = obj["playing"] as? Bool ?? false
-            completion(Track(title: title, artist: artist, isPlaying: isPlaying))
+            let artwork = obj["artwork"] as? String
+            completion(Track(title: title, artist: artist, isPlaying: isPlaying, artworkURL: artwork))
         }
     }
 }
