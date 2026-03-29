@@ -1,43 +1,29 @@
 import Cocoa
 
-let script = """
-tell application "System Events"
-    tell process "Яндекс Музыка"
-        set output to ""
-        tell front window
-            set allElems to every UI element
-            repeat with elem in allElems
-                try
-                    set r to role of elem
-                    set d to description of elem
-                    set t to title of elem
-                    set v to value of elem
-                    set output to output & r & " | title:" & (t as text) & " | desc:" & (d as text) & " | val:" & (v as text) & linefeed
-                end try
-                try
-                    set subElems to every UI element of elem
-                    repeat with sub in subElems
-                        try
-                            set r2 to role of sub
-                            set d2 to description of sub
-                            set t2 to title of sub
-                            set v2 to value of sub
-                            set output to output & "  " & r2 & " | title:" & (t2 as text) & " | desc:" & (d2 as text) & " | val:" & (v2 as text) & linefeed
-                        end try
-                    end repeat
-                end try
-            end repeat
-        end tell
-        return output
-    end tell
-end tell
-"""
+print("Listening for ALL distributed notifications for 15 seconds...")
+print("Switch tracks in Яндекс Музыка NOW!")
+print("---")
 
-var error: NSDictionary?
-let as1 = NSAppleScript(source: script)
-if let result = as1?.executeAndReturnError(&error) {
-    let text = result.stringValue ?? "empty"
-    print(String(text.prefix(3000)))
-} else {
-    print("Error: \(error?["NSAppleScriptErrorMessage"] ?? "unknown")")
+let center = DistributedNotificationCenter.default()
+let observer = center.addObserver(forName: nil, object: nil, queue: .main) { notification in
+    let name = notification.name.rawValue
+    // Filter out noisy system stuff
+    if name.contains("com.apple.accessibility") || name.contains("AppleSystemUIS") || name.contains("Cursor") {
+        return
+    }
+    print("[\(name)]")
+    if let info = notification.userInfo, !info.isEmpty {
+        for (key, value) in info {
+            print("  \(key) = \(value)")
+        }
+    }
 }
+
+// Stop after 15 seconds
+DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+    print("---")
+    print("Done.")
+    exit(0)
+}
+
+RunLoop.main.run()
