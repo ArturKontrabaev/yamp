@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Get current track from Yandex Music via Chrome DevTools Protocol"""
+"""Get current track from Yandex Music via CDP — no dependencies"""
 import json
 import urllib.request
-import websocket  # pip3 install websocket-client
+import socket
+import hashlib
+import base64
+import struct
+import os
 
 def get_ws_url():
     data = urllib.request.urlopen("http://localhost:9222/json").read()
@@ -12,101 +16,135 @@ def get_ws_url():
             return p["webSocketDebuggerUrl"]
     return None
 
-def get_track(ws_url):
-    ws = websocket.create_connection(ws_url)
+def ws_connect(url):
+    """Minimal WebSocket client — no dependencies"""
+    url = url.replace("ws://", "")
+    host_port, path = url.split("/", 1)
+    host, port = host_port.split(":")
+    path = "/" + path
 
-    # Try multiple selectors to find the track
-    js = """
-    (function() {
-        // Try common selectors for Yandex Music player
-        var selectors = [
-            '.player-controls__title-track',
-            '.d-track__title',
-            '[class*="trackTitle"]',
-            '[class*="track-title"]',
-            '[data-test="track-title"]',
-            '.track-name',
-            '.player__title',
-        ];
-        var artistSelectors = [
-            '.player-controls__title-artist',
-            '.d-track__artists',
-            '[class*="trackArtist"]',
-            '[class*="track-artist"]',
-            '[data-test="track-artist"]',
-            '.track-artist',
-            '.player__artist',
-        ];
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((host, int(port)))
 
-        var title = '';
-        var artist = '';
+    key = base64.b64encode(os.urandom(16)).decode()
+    handshake = (
+        f"GET {path} HTTP/1.1\r\n"
+        f"Host: {host}:{port}\r\n"
+        f"Upgrade: websocket\r\n"
+        f"Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        f"Sec-WebSocket-Version: 13\r\n"
+        f"\r\n"
+    )
+    sock.send(handshake.encode())
 
-        for (var s of selectors) {
-            var el = document.querySelector(s);
-            if (el && el.textContent.trim()) {
-                title = el.textContent.trim();
-                break;
+    response = b""
+    while b"\r\n\r\n" not in response:
+        response += sock.recv(4096)
+
+    return sock
+
+def ws_send(sock, data):
+    payload = data.encode("utf-8")
+    frame = bytearray()
+    frame.append(0x81)  # text frame
+    length = len(payload)
+    mask_key = os.urandom(4)
+
+    if length < 126:
+        frame.append(0x80 | length)
+    elif length < 65536:
+        frame.append(0x80 | 126)
+        frame.extend(struct.pack(">H", length))
+    else:
+        frame.append(0x80 | 127)
+        frame.extend(struct.pack(">Q", length))
+
+    frame.extend(mask_key)
+    masked = bytearray(b ^ mask_key[i % 4] for i, b in enumerate(payload))
+    frame.extend(masked)
+    sock.send(frame)
+
+def ws_recv(sock):
+    header = sock.recv(2)
+    if len(header) < 2:
+        return ""
+    length = header[1] & 0x7F
+    if length == 126:
+        length = struct.unpack(">H", sock.recv(2))[0]
+    elif length == 127:
+        length = struct.unpack(">Q", sock.recv(8))[0]
+
+    data = b""
+    while len(data) < length:
+        chunk = sock.recv(length - len(data))
+        if not chunk:
+            break
+        data += chunk
+    return data.decode("utf-8", errors="replace")
+
+js_code = """
+(function() {
+    var selectors = [
+        '.player-controls__title-track',
+        '.d-track__title',
+        '[class*="trackTitle"]',
+        '[class*="track-title"]',
+        '[class*="PlayerBarDesktop"]',
+        '.track-name',
+        '.player__title',
+    ];
+    var artistSelectors = [
+        '.player-controls__title-artist',
+        '.d-track__artists',
+        '[class*="trackArtist"]',
+        '[class*="track-artist"]',
+        '.track-artist',
+        '.player__artist',
+    ];
+    var title = '';
+    var artist = '';
+    for (var s of selectors) {
+        var el = document.querySelector(s);
+        if (el && el.textContent.trim()) { title = el.textContent.trim(); break; }
+    }
+    for (var s of artistSelectors) {
+        var el = document.querySelector(s);
+        if (el && el.textContent.trim()) { artist = el.textContent.trim(); break; }
+    }
+    if (!title) {
+        var all = document.querySelectorAll('*');
+        var found = [];
+        for (var el of all) {
+            var cls = el.className;
+            if (typeof cls === 'string' && (cls.includes('rack') || cls.includes('layer') || cls.includes('itle'))) {
+                var t = el.textContent.trim().substring(0, 80);
+                if (t && t.length > 1 && t.length < 80) found.push(cls.substring(0,60) + ': ' + t);
             }
         }
+        title = 'DEBUG:' + found.slice(0,15).join('|');
+    }
+    return JSON.stringify({title: title, artist: artist});
+})()
+"""
 
-        for (var s of artistSelectors) {
-            var el = document.querySelector(s);
-            if (el && el.textContent.trim()) {
-                artist = el.textContent.trim();
-                break;
-            }
-        }
+if __name__ == "__main__":
+    ws_url = get_ws_url()
+    if not ws_url:
+        print("Yandex Music not found on port 9222")
+        exit(1)
 
-        // If nothing found, try to get from document title or any visible player element
-        if (!title) {
-            // Look for any element with track-like content in the player area
-            var playerEl = document.querySelector('[class*="player"]') || document.querySelector('[class*="Player"]');
-            if (playerEl) {
-                var allText = playerEl.innerText;
-                if (allText) title = 'PLAYER_TEXT: ' + allText.substring(0, 200);
-            }
-        }
-
-        // Last resort: dump all class names containing 'track' or 'player' or 'title'
-        if (!title) {
-            var allEls = document.querySelectorAll('*');
-            var classes = [];
-            for (var el of allEls) {
-                var cls = el.className;
-                if (typeof cls === 'string' && (cls.includes('track') || cls.includes('Track') || cls.includes('player') || cls.includes('Player'))) {
-                    var text = el.textContent.trim().substring(0, 100);
-                    if (text) classes.push(cls.substring(0, 80) + ' => ' + text);
-                }
-            }
-            if (classes.length > 0) title = 'CLASSES: ' + classes.slice(0, 10).join(' | ');
-        }
-
-        return JSON.stringify({title: title, artist: artist});
-    })()
-    """
-
-    msg = json.dumps({
-        "id": 1,
-        "method": "Runtime.evaluate",
-        "params": {"expression": js, "returnByValue": True}
-    })
-
-    ws.send(msg)
-    result = json.loads(ws.recv())
-    ws.close()
+    sock = ws_connect(ws_url)
+    msg = json.dumps({"id": 1, "method": "Runtime.evaluate", "params": {"expression": js_code, "returnByValue": True}})
+    ws_send(sock, msg)
+    result = json.loads(ws_recv(sock))
+    sock.close()
 
     if "result" in result and "result" in result["result"]:
         val = result["result"]["result"].get("value", "")
         if val:
             track = json.loads(val)
-            return track
+            print(json.dumps(track, ensure_ascii=False, indent=2))
+            exit(0)
 
-    return {"title": "", "artist": "", "raw": str(result)[:500]}
-
-if __name__ == "__main__":
-    ws_url = get_ws_url()
-    if not ws_url:
-        print("Yandex Music not found. Launch with: open -a 'Яндекс Музыка' --args --remote-debugging-port=9222")
-    else:
-        track = get_track(ws_url)
-        print(json.dumps(track, ensure_ascii=False, indent=2))
+    print(json.dumps(result, ensure_ascii=False, indent=2)[:1000])
