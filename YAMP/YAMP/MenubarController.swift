@@ -137,7 +137,7 @@ class MenubarController: NSObject {
         controlsPanel = nil
     }
 
-    override func mouseExited(with event: NSEvent) {
+    func handleMouseExited() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
             self?.isHovering = false
@@ -239,20 +239,23 @@ class MenubarController: NSObject {
     }
 
     private func sendMediaKey(keyCode: UInt32) {
-        let keyDown = NSEvent.otherEvent(
-            with: .systemDefined, location: .zero,
-            modifierFlags: NSEvent.ModifierFlags(rawValue: 0xa00),
-            timestamp: 0, windowNumber: 0, context: nil,
-            subtype: 8, data1: Int((keyCode << 16) | (0xa << 8)), data2: -1
-        )
-        let keyUp = NSEvent.otherEvent(
-            with: .systemDefined, location: .zero,
-            modifierFlags: NSEvent.ModifierFlags(rawValue: 0xb00),
-            timestamp: 0, windowNumber: 0, context: nil,
-            subtype: 8, data1: Int((keyCode << 16) | (0xb << 8)), data2: -1
-        )
-        if let e = keyDown { CGEvent(event: e)?.post(tap: .cghidEventTap) }
-        if let e = keyUp { CGEvent(event: e)?.post(tap: .cghidEventTap) }
+        func postSystemEvent(keyDown: Bool) {
+            let flags: UInt32 = keyDown ? 0xa : 0xb
+            let data1 = Int((keyCode << 16) | (flags << 8))
+            let modFlags = NSEvent.ModifierFlags(rawValue: UInt(flags) << 8)
+
+            guard let event = NSEvent.otherEvent(
+                with: .systemDefined, location: .zero,
+                modifierFlags: modFlags,
+                timestamp: 0, windowNumber: 0, context: nil,
+                subtype: 8, data1: data1, data2: -1
+            ) else { return }
+
+            let cgEvent = event.cgEvent
+            cgEvent?.post(tap: .cghidEventTap)
+        }
+        postSystemEvent(keyDown: true)
+        postSystemEvent(keyDown: false)
     }
 
     @objc private func showLyrics() {
@@ -407,7 +410,7 @@ class CDPEval {
                 while rd.count < len { let ch = fh.readData(ofLength: len - rd.count); if ch.isEmpty { break }; rd.append(ch) }
                 try? fh.close()
 
-                guard let rs = String(data: rd, encoding: .utf8),
+                guard let _ = String(data: rd, encoding: .utf8),
                       let ro = try? JSONSerialization.jsonObject(with: rd) as? [String: Any],
                       let rr = ro["result"] as? [String: Any],
                       let ri = rr["result"] as? [String: Any],
