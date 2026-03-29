@@ -93,22 +93,42 @@ JS_DUMP = """
 
 JS_TRACK = """
 (function() {
-    // Based on known Yandex Music desktop app DOM
+    var bar = document.querySelector('[class*="PlayerBarDesktop"]');
+    if (!bar) return JSON.stringify({title:'',artist:'',playing:false,artwork:'',liked:false});
+
     var title = '';
     var artist = '';
 
-    // Try specific selectors
-    var titleEl = document.querySelector('.PlayerBarDesktop_title__kbMYh a')
-        || document.querySelector('[class*="PlayerBarDesktop_title"] a')
-        || document.querySelector('[class*="PlayerBar"] [class*="title"] a');
-    if (titleEl) title = titleEl.textContent.trim();
+    var titleEl = bar.querySelector('[class*="Meta_titleContainer"] a') || bar.querySelector('[class*="Meta_albumLink"]');
+    if (titleEl) {
+        var ariaT = titleEl.getAttribute('aria-label') || '';
+        if (ariaT.startsWith('Track ')) title = ariaT.substring(6);
+        else title = titleEl.textContent.trim();
+    }
 
-    var artistEl = document.querySelector('.PlayerBarDesktop_artist__b4WT0 a')
-        || document.querySelector('[class*="PlayerBarDesktop_artist"] a')
-        || document.querySelector('[class*="PlayerBar"] [class*="artist"] a');
-    if (artistEl) artist = artistEl.textContent.trim();
+    var artistEls = bar.querySelectorAll('[class*="Meta_text"] [class*="Meta_link"]');
+    if (artistEls.length > 0) {
+        var ariaA = artistEls[0].getAttribute('aria-label') || '';
+        if (ariaA.startsWith('Artist ')) artist = ariaA.substring(7);
+        else artist = artistEls[0].textContent.trim();
+    }
 
-    return JSON.stringify({title: title, artist: artist});
+    var pauseBtn = bar.querySelector('[aria-label="Pause"]');
+    var playBtn = bar.querySelector('[aria-label="Playback"]');
+    var isPlaying = pauseBtn !== null && playBtn === null;
+
+    var artworkURL = '';
+    var imgEl = bar.querySelector('img');
+    if (imgEl) artworkURL = imgEl.src || '';
+
+    var likeBtn = bar.querySelector('[aria-label="Like"]');
+    var isLiked = false;
+    if (likeBtn) {
+        var likeCls = likeBtn.className || '';
+        isLiked = likeCls.includes('liked') || likeCls.includes('Liked') || likeCls.includes('zIMib');
+    }
+
+    return JSON.stringify({title: title, artist: artist, playing: isPlaying, artwork: artworkURL, liked: isLiked});
 })()
 """
 

@@ -17,6 +17,8 @@ swiftc \
     YAMP/Track.swift \
     YAMP/Settings.swift \
     YAMP/NowPlayingTrackProvider.swift \
+    YAMP/NowPlayingPopover.swift \
+    YAMP/SettingsWindow.swift \
     YAMP/MenubarController.swift \
     YAMP/AppDelegate.swift
 echo ""

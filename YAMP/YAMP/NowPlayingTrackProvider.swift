@@ -53,9 +53,14 @@ class NowPlayingTrackProvider {
 
             let title = obj["title"] as? String ?? ""
             let artist = obj["artist"] as? String ?? ""
+            let playing = obj["playing"] as? Bool ?? !title.isEmpty
+            let artwork = obj["artwork"] as? String
+            let liked = obj["liked"] as? Bool ?? false
 
             DispatchQueue.main.async {
-                completion(Track(title: title, artist: artist, isPlaying: !title.isEmpty, artworkURL: nil))
+                var track = Track(title: title, artist: artist, isPlaying: playing, artworkURL: artwork)
+                track.isLiked = liked
+                completion(track)
             }
         }
     }

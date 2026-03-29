@@ -28,5 +28,7 @@ struct Track {
         return String(s.prefix(maxLength - 1)) + "…"
     }
 
+    var isLiked: Bool = false
+
     static let empty = Track(title: "", artist: "", isPlaying: false, artworkURL: nil)
 }
