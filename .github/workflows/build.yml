@@ -1,0 +1,29 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cd YAMP
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Zip app
+        run: |
+          cd YAMP/build
+          zip -r YAMP.app.zip YAMP.app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: YAMP/build/YAMP.app.zip
+          generate_release_notes: true
