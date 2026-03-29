@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ensureWrapper()
         ensureYandexMusicWithCDP()
         trackProvider = NowPlayingTrackProvider()
         menubarController = MenubarController()
@@ -17,6 +18,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 
         startPolling()
+    }
+
+    private func ensureWrapper() {
+        let appDir = "/Applications/YandexMusic.app/Contents/MacOS"
+        let binary = appDir + "/Яндекс Музыка"
+        let orig = appDir + "/Яндекс Музыка.orig"
+        let fm = FileManager.default
+
+        // If .orig doesn't exist — wrapper not installed or was overwritten by update
+        if !fm.fileExists(atPath: orig) && fm.fileExists(atPath: binary) {
+            // Check if current binary is already a wrapper (small shell script vs large Electron binary)
+            if let attrs = try? fm.attributesOfItem(atPath: binary),
+               let size = attrs[.size] as? Int,
+               size > 10000 {
+                // It's the real binary (large file), install wrapper
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: "/bin/bash")
+                proc.arguments = ["-c", """
+                    mv "\(binary)" "\(orig)" && \
+                    printf '#!/bin/bash\\nexec "$(dirname "$0")/Яндекс Музыка.orig" --remote-debugging-port=9222 "$@"\\n' > "\(binary)" && \
+                    chmod +x "\(binary)"
+                """]
+                proc.standardOutput = FileHandle.nullDevice
+                proc.standardError = FileHandle.nullDevice
+                try? proc.run()
+                proc.waitUntilExit()
+            }
+        }
     }
 
     private func ensureYandexMusicWithCDP() {
