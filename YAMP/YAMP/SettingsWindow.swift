@@ -37,8 +37,13 @@ class SettingsWindow {
         valLabel.tag = 100
         cv.addSubview(valLabel)
 
+        let hideCheck = NSButton(checkboxWithTitle: "Show icon only when paused", target: self, action: #selector(hideToggled(_:)))
+        hideCheck.frame = NSRect(x: 20, y: 52, width: 260, height: 20)
+        hideCheck.state = Settings.shared.hideTrackOnPause ? .on : .off
+        cv.addSubview(hideCheck)
+
         let quitBtn = NSButton(title: "Quit YAMP", target: self, action: #selector(quit))
-        quitBtn.frame = NSRect(x: 20, y: 20, width: 100, height: 32)
+        quitBtn.frame = NSRect(x: 20, y: 12, width: 100, height: 32)
         quitBtn.bezelStyle = .rounded
         cv.addSubview(quitBtn)
 
@@ -63,6 +68,10 @@ class SettingsWindow {
                 if let l = sub as? NSTextField, l.tag == 100 { l.stringValue = "\(v)" }
             }
         }
+    }
+
+    @objc private func hideToggled(_ sender: NSButton) {
+        Settings.shared.hideTrackOnPause = sender.state == .on
     }
 
     @objc private func quit() { NSApp.terminate(nil) }

@@ -31,7 +31,8 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
 
     func update(with track: Track) {
         let maxLen = Settings.shared.maxDisplayLength
-        let newDisplay = track.title.isEmpty ? "♪" : "\(track.truncatedDisplay(maxLength: maxLen))"
+        let showIcon = track.title.isEmpty || (!track.isPlaying && Settings.shared.hideTrackOnPause)
+        let newDisplay = showIcon ? "♪" : "\(track.truncatedDisplay(maxLength: maxLen))"
         if statusItem.button?.title != newDisplay {
             statusItem.button?.title = newDisplay
         }

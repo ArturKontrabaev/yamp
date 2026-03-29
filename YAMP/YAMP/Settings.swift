@@ -10,8 +10,13 @@ class Settings {
         set { defaults.set(newValue, forKey: "maxDisplayLength") }
     }
 
+    var hideTrackOnPause: Bool {
+        get { defaults.bool(forKey: "hideTrackOnPause") }
+        set { defaults.set(newValue, forKey: "hideTrackOnPause") }
+    }
+
     private init() {
-        defaults.register(defaults: ["maxDisplayLength": 30])
+        defaults.register(defaults: ["maxDisplayLength": 30, "hideTrackOnPause": true])
     }
 }
 
