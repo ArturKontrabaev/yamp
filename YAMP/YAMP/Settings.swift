@@ -15,8 +15,23 @@ class Settings {
         set { defaults.set(newValue, forKey: "hideTrackOnPause") }
     }
 
+    var menuBarIcon: String {
+        get { defaults.string(forKey: "menuBarIcon") ?? "music.quarternote.3" }
+        set { defaults.set(newValue, forKey: "menuBarIcon") }
+    }
+
+    static let iconOptions: [(id: String, label: String, isSFSymbol: Bool)] = [
+        ("music.quarternote.3", "Now Playing", true),
+        ("music.note", "Music Note", true),
+        ("headphones", "Headphones", true),
+        ("waveform", "Waveform", true),
+        ("guitars", "Guitar", true),
+        ("♪", "♪ Text", false),
+        ("Y", "Y (Yandex)", false),
+    ]
+
     private init() {
-        defaults.register(defaults: ["maxDisplayLength": 30, "hideTrackOnPause": true])
+        defaults.register(defaults: ["maxDisplayLength": 30, "hideTrackOnPause": true, "menuBarIcon": "music.quarternote.3"])
     }
 }
 

@@ -14,7 +14,7 @@ class SettingsWindow {
         }
 
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 360),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -25,7 +25,7 @@ class SettingsWindow {
 
         let cv = NSView(frame: w.contentView!.bounds)
 
-        var y: CGFloat = 280
+        var y: CGFloat = 320
 
         // Display length
         let label = NSTextField(labelWithString: "Max display length:")
@@ -44,6 +44,26 @@ class SettingsWindow {
         valLabel.tag = 100
         cv.addSubview(valLabel)
         y -= 30
+
+        // Icon picker
+        let iconLabel = NSTextField(labelWithString: "Menu bar icon:")
+        iconLabel.frame = NSRect(x: 20, y: y, width: 120, height: 20)
+        iconLabel.font = NSFont.systemFont(ofSize: 13)
+        cv.addSubview(iconLabel)
+
+        let iconPopup = NSPopUpButton(frame: NSRect(x: 150, y: y - 2, width: 180, height: 24))
+        let currentIcon = Settings.shared.menuBarIcon
+        for opt in Settings.iconOptions {
+            let prefix = opt.isSFSymbol ? "" : "\(opt.id) "
+            iconPopup.addItem(withTitle: "\(prefix)\(opt.label)")
+            if opt.id == currentIcon {
+                iconPopup.selectItem(at: iconPopup.numberOfItems - 1)
+            }
+        }
+        iconPopup.target = self
+        iconPopup.action = #selector(iconChanged(_:))
+        cv.addSubview(iconPopup)
+        y -= 32
 
         // Hide on pause
         let hideCheck = NSButton(checkboxWithTitle: "Show icon only when paused", target: self, action: #selector(hideToggled(_:)))
@@ -114,6 +134,15 @@ class SettingsWindow {
             for sub in cv.subviews {
                 if let l = sub as? NSTextField, l.tag == 100 { l.stringValue = "\(v)" }
             }
+        }
+    }
+
+    @objc private func iconChanged(_ sender: NSPopUpButton) {
+        let idx = sender.indexOfSelectedItem
+        if idx >= 0 && idx < Settings.iconOptions.count {
+            Settings.shared.menuBarIcon = Settings.iconOptions[idx].id
+            // Notify to update icon immediately
+            NotificationCenter.default.post(name: NSNotification.Name("YAMPIconChanged"), object: nil)
         }
     }
 

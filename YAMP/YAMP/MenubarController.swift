@@ -22,19 +22,48 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         popover.behavior = .transient
         popover.animates = true
 
-        statusItem.button?.title = "♪"
         statusItem.button?.font = NSFont.systemFont(ofSize: 13)
+        applyIcon()
         statusItem.button?.target = self
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.sendAction(on: [.leftMouseUp])
+
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("YAMPIconChanged"), object: nil, queue: .main) { [weak self] _ in
+            self?.applyIcon()
+        }
+    }
+
+    func applyIcon() {
+        let iconId = Settings.shared.menuBarIcon
+        let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
+        if opt.isSFSymbol {
+            let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")
+            img?.isTemplate = true
+            statusItem.button?.image = img
+        } else {
+            statusItem.button?.image = nil
+        }
     }
 
     func update(with track: Track) {
         let maxLen = Settings.shared.maxDisplayLength
         let showIcon = track.title.isEmpty || (!track.isPlaying && Settings.shared.hideTrackOnPause)
-        let newDisplay = showIcon ? "♪" : "\(track.truncatedDisplay(maxLength: maxLen))"
-        if statusItem.button?.title != newDisplay {
-            statusItem.button?.title = newDisplay
+
+        if showIcon {
+            let iconId = Settings.shared.menuBarIcon
+            let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
+            if opt.isSFSymbol {
+                statusItem.button?.title = ""
+                let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")
+                img?.isTemplate = true
+                statusItem.button?.image = img
+            } else {
+                statusItem.button?.image = nil
+                statusItem.button?.title = opt.id
+            }
+        } else {
+            statusItem.button?.image = nil
+            statusItem.button?.title = track.truncatedDisplay(maxLength: maxLen)
         }
         currentTrack = track
         popoverView.update(with: track)
