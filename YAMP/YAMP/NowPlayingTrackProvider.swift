@@ -3,55 +3,60 @@ import Foundation
 class NowPlayingTrackProvider {
 
     func getCurrentTrack(completion: @escaping (Track) -> Void) {
-        let js = """
-        (function() {
-            var title = '';
-            var artist = '';
-            var titleEl = document.querySelector('[class*="Meta_titleContainer"] a')
-                || document.querySelector('[class*="PlayerBarDesktop"] [class*="Meta_albumLink"]');
-            if (titleEl) {
-                var ariaT = titleEl.getAttribute('aria-label') || '';
-                if (ariaT.startsWith('Track ')) title = ariaT.substring(6);
-                else title = titleEl.textContent.trim();
-            }
-            var artistEls = document.querySelectorAll('[class*="PlayerBarDesktop"] [class*="Meta_text"] [class*="Meta_link"]');
-            if (artistEls.length > 0) {
-                var ariaA = artistEls[0].getAttribute('aria-label') || '';
-                if (ariaA.startsWith('Artist ')) artist = ariaA.substring(7);
-                else artist = artistEls[0].textContent.trim();
-            }
-            var pauseBtn = document.querySelector('[aria-label="Pause"]');
-            var playBtn = document.querySelector('[aria-label="Playback"]');
-            var isPlaying = pauseBtn !== null && playBtn === null;
-            var artworkURL = '';
-            var imgEl = document.querySelector('[class*="PlayerBarDesktop"] img');
-            if (imgEl) artworkURL = imgEl.src || '';
-            var currentTime = 0;
-            var duration = 0;
-            var audio = document.querySelector('audio');
-            if (audio) {
-                currentTime = isFinite(audio.currentTime) ? audio.currentTime : 0;
-                duration = isFinite(audio.duration) ? audio.duration : 0;
-            }
-            return JSON.stringify({title: title, artist: artist, playing: isPlaying, artwork: artworkURL, currentTime: currentTime, duration: duration});
-        })()
-        """
+        DispatchQueue.global().async {
+            let scriptPath = Bundle.main.bundlePath
+                .components(separatedBy: "/YAMP.app")[0] + "/get_track.py"
 
-        CDPConnection.shared.evaluate(js: js) { result in
-            guard !result.isEmpty,
-                  let data = result.data(using: .utf8),
-                  let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                completion(.empty)
+            // Try multiple paths for get_track.py
+            let paths = [
+                scriptPath,
+                NSHomeDirectory() + "/yamp/get_track.py",
+                "/Users/" + NSUserName() + "/yamp/get_track.py",
+            ]
+
+            var pyPath: String?
+            for p in paths {
+                if FileManager.default.fileExists(atPath: p) {
+                    pyPath = p
+                    break
+                }
+            }
+
+            guard let scriptFile = pyPath else {
+                DispatchQueue.main.async { completion(.empty) }
+                return
+            }
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["python3", scriptFile]
+
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+            } catch {
+                DispatchQueue.main.async { completion(.empty) }
+                return
+            }
+
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            guard let output = String(data: data, encoding: .utf8),
+                  let jsonData = output.data(using: .utf8),
+                  let obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+                DispatchQueue.main.async { completion(.empty) }
                 return
             }
 
             let title = obj["title"] as? String ?? ""
             let artist = obj["artist"] as? String ?? ""
-            let isPlaying = obj["playing"] as? Bool ?? false
-            let artwork = obj["artwork"] as? String
-            let currentTime = obj["currentTime"] as? Double ?? 0
-            let duration = obj["duration"] as? Double ?? 0
-            completion(Track(title: title, artist: artist, isPlaying: isPlaying, artworkURL: artwork, currentTime: currentTime, duration: duration))
+
+            DispatchQueue.main.async {
+                completion(Track(title: title, artist: artist, isPlaying: !title.isEmpty, artworkURL: nil))
+            }
         }
     }
 }

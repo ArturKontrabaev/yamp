@@ -1,32 +1,15 @@
 import Cocoa
 
-class MenubarController: NSObject, NowPlayingPopoverDelegate {
+class MenubarController: NSObject {
     private let statusItem: NSStatusItem
     private var currentTrack: Track = .empty
-    private let popover = NSPopover()
-    private let popoverView: NowPlayingPopover
-    private var eventMonitor: Any?
-    private let settingsWindow = SettingsWindow()
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        popoverView = NowPlayingPopover(frame: NSRect(x: 0, y: 0, width: 296, height: 148))
         super.init()
-
-        popoverView.delegate = self
-
-        let viewController = NSViewController()
-        viewController.view = popoverView
-        popover.contentViewController = viewController
-        popover.contentSize = NSSize(width: 296, height: 148)
-        popover.behavior = .transient
-        popover.animates = true
-
         statusItem.button?.title = "♪"
         statusItem.button?.font = NSFont.systemFont(ofSize: 13)
-        statusItem.button?.target = self
-        statusItem.button?.action = #selector(statusItemClicked)
-        statusItem.button?.sendAction(on: [.leftMouseUp])
+        buildMenu()
     }
 
     func update(with track: Track) {
@@ -36,47 +19,77 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
             statusItem.button?.title = newDisplay
         }
         currentTrack = track
-        popoverView.update(with: track)
+        buildMenu()
     }
 
-    @objc private func statusItemClicked() {
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            guard let button = statusItem.button else { return }
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    private func buildMenu() {
+        let menu = NSMenu()
 
-            // Close when clicking outside
-            eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-                self?.popover.performClose(nil)
-                if let monitor = self?.eventMonitor {
-                    NSEvent.removeMonitor(monitor)
-                    self?.eventMonitor = nil
-                }
-            }
+        if !currentTrack.title.isEmpty {
+            let titleItem = NSMenuItem(title: currentTrack.menuTitle, action: nil, keyEquivalent: "")
+            titleItem.isEnabled = false
+            titleItem.attributedTitle = NSAttributedString(
+                string: currentTrack.menuTitle,
+                attributes: [.font: NSFont.boldSystemFont(ofSize: 14)]
+            )
+            menu.addItem(titleItem)
+
+            let artistItem = NSMenuItem(title: currentTrack.menuArtist, action: nil, keyEquivalent: "")
+            artistItem.isEnabled = false
+            menu.addItem(artistItem)
+            menu.addItem(NSMenuItem.separator())
+        }
+
+        let playPause = NSMenuItem(title: "⏵⏸  Play / Pause", action: #selector(togglePlayPause), keyEquivalent: " ")
+        playPause.target = self
+        menu.addItem(playPause)
+
+        let next = NSMenuItem(title: "⏭  Next", action: #selector(nextTrack), keyEquivalent: "n")
+        next.target = self
+        menu.addItem(next)
+
+        let prev = NSMenuItem(title: "⏮  Previous", action: #selector(prevTrack), keyEquivalent: "p")
+        prev.target = self
+        menu.addItem(prev)
+
+        let like = NSMenuItem(title: "♡  Like", action: #selector(likeTrack), keyEquivalent: "l")
+        like.target = self
+        menu.addItem(like)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
+    }
+
+    private func cdpClick(ariaLabel: String) {
+        DispatchQueue.global().async {
+            let js = "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"\(ariaLabel)\"]')?.click()"
+            let scriptPath = NSHomeDirectory() + "/yamp/cdp_click.py"
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["python3", scriptPath, js]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try? process.run()
         }
     }
 
-    // MARK: - NowPlayingPopoverDelegate
-
-    func didTapPlayPause() {
-        CDPConnection.shared.evaluate(js: "(document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Playback\"]') || document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Pause\"]'))?.click()") { _ in }
+    @objc private func togglePlayPause() {
+        cdpClick(ariaLabel: "Playback")
+        // Try pause too in case it's playing
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { [self] in
+            cdpClick(ariaLabel: "Pause")
+        }
     }
 
-    func didTapNext() {
-        CDPConnection.shared.evaluate(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Next song\"]')?.click()") { _ in }
-    }
+    @objc private func nextTrack() { cdpClick(ariaLabel: "Next song") }
+    @objc private func prevTrack() { cdpClick(ariaLabel: "Previous song") }
+    @objc private func likeTrack() { cdpClick(ariaLabel: "Like") }
 
-    func didTapPrev() {
-        CDPConnection.shared.evaluate(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Previous song\"]')?.click()") { _ in }
-    }
-
-    func didTapLike() {
-        CDPConnection.shared.evaluate(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Like\"]')?.click()") { _ in }
-    }
-
-    func didTapSettings() {
-        popover.performClose(nil)
-        settingsWindow.show()
-    }
+    @objc private func quit() { NSApp.terminate(nil) }
 }

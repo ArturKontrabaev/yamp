@@ -5,8 +5,6 @@ struct Track {
     let artist: String
     let isPlaying: Bool
     let artworkURL: String?
-    let currentTime: Double
-    let duration: Double
 
     var displayString: String {
         if title.isEmpty { return "" }
@@ -30,5 +28,5 @@ struct Track {
         return String(s.prefix(maxLength - 1)) + "…"
     }
 
-    static let empty = Track(title: "", artist: "", isPlaying: false, artworkURL: nil, currentTime: 0, duration: 0)
+    static let empty = Track(title: "", artist: "", isPlaying: false, artworkURL: nil)
 }
