@@ -22,7 +22,7 @@ struct Track {
     }
 
     var truncatedDisplay: String {
-        let max = 40
+        let max = 30
         let s = displayString
         if s.count <= max { return s }
         return String(s.prefix(max - 1)) + "…"
