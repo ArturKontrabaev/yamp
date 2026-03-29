@@ -54,20 +54,27 @@ class MenubarController: NSObject {
 
         let isInButton = buttonFrame.contains(mouseLocation)
 
+        // Expanded zone: button + panel + gap between them
+        var isInZone = isInButton
+        if let panel = controlsPanel {
+            let panelFrame = panel.frame
+            // Union of button, panel, and the gap between
+            let combined = buttonFrame.union(panelFrame).insetBy(dx: -5, dy: -5)
+            isInZone = combined.contains(mouseLocation)
+        }
+
         if isInButton && !isHovering {
             isHovering = true
             hideTimer?.invalidate()
             showControlsPanel()
-        } else if !isInButton && isHovering {
-            // Check if mouse is in the controls panel
-            if let panel = controlsPanel, panel.frame.contains(mouseLocation) {
-                return
-            }
+        } else if !isInZone && isHovering {
             hideTimer?.invalidate()
-            hideTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            hideTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
                 self?.isHovering = false
                 self?.hideControlsPanel()
             }
+        } else if isInZone {
+            hideTimer?.invalidate()
         }
     }
 
@@ -82,7 +89,7 @@ class MenubarController: NSObject {
         let panelWidth: CGFloat = 100
         let panelHeight: CGFloat = 32
         let panelX = buttonFrame.midX - panelWidth / 2
-        let panelY = buttonFrame.minY - panelHeight - 2
+        let panelY = buttonFrame.minY - panelHeight
 
         let panel = NSPanel(
             contentRect: NSRect(x: panelX, y: panelY, width: panelWidth, height: panelHeight),
