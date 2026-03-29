@@ -238,35 +238,15 @@ class MenubarController: NSObject {
     // MARK: - Actions
 
     @objc private func togglePlayPause() {
-        sendMediaKey(keyCode: 16)
+        CDPEval.run(js: "document.querySelector('.player-controls__btn_play, [class*=\"PlayerBarDesktop\"] [class*=\"Play\"] button, [class*=\"ControlButton\"][class*=\"Play\"]')?.click() || document.querySelector('button[class*=\"play\"], button[class*=\"Play\"]')?.click()") { _ in }
     }
 
     @objc private func nextTrack() {
-        sendMediaKey(keyCode: 17)
+        CDPEval.run(js: "document.querySelector('.player-controls__btn_next, [class*=\"ControlButton\"][title*=\"Следующ\"], [class*=\"ControlButton\"][title*=\"Next\"], button[title*=\"Следующ\"], button[title*=\"Next\"]')?.click()") { _ in }
     }
 
     @objc private func prevTrack() {
-        sendMediaKey(keyCode: 18)
-    }
-
-    private func sendMediaKey(keyCode: UInt32) {
-        func postSystemEvent(keyDown: Bool) {
-            let flags: UInt32 = keyDown ? 0xa : 0xb
-            let data1 = Int((keyCode << 16) | (flags << 8))
-            let modFlags = NSEvent.ModifierFlags(rawValue: UInt(flags) << 8)
-
-            guard let event = NSEvent.otherEvent(
-                with: .systemDefined, location: .zero,
-                modifierFlags: modFlags,
-                timestamp: 0, windowNumber: 0, context: nil,
-                subtype: 8, data1: data1, data2: -1
-            ) else { return }
-
-            let cgEvent = event.cgEvent
-            cgEvent?.post(tap: .cghidEventTap)
-        }
-        postSystemEvent(keyDown: true)
-        postSystemEvent(keyDown: false)
+        CDPEval.run(js: "document.querySelector('.player-controls__btn_prev, [class*=\"ControlButton\"][title*=\"Предыдущ\"], [class*=\"ControlButton\"][title*=\"Prev\"], button[title*=\"Предыдущ\"], button[title*=\"Prev\"]')?.click()") { _ in }
     }
 
     @objc private func showLyrics() {
