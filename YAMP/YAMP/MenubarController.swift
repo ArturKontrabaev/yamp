@@ -99,6 +99,9 @@ class MenubarController: NSObject {
         )
         panel.isFloatingPanel = true
         panel.level = .statusBar
+        panel.acceptsMouseMovedEvents = true
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.worksWhenModal = true
         panel.backgroundColor = NSColor.windowBackgroundColor
         panel.hasShadow = true
         panel.isOpaque = false
@@ -131,11 +134,12 @@ class MenubarController: NSObject {
     private func makeButton(title: String, x: CGFloat, action: Selector) -> NSButton {
         let btn = NSButton(frame: NSRect(x: x, y: 2, width: 28, height: 28))
         btn.title = title
-        btn.bezelStyle = .inline
-        btn.isBordered = false
+        btn.bezelStyle = .accessoryBarAction
+        btn.isBordered = true
         btn.font = NSFont.systemFont(ofSize: 14)
         btn.target = self
         btn.action = action
+        btn.focusRingType = .none
         return btn
     }
 
