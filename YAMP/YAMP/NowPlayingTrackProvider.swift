@@ -64,7 +64,8 @@ class NowPlayingTrackProvider {
                 else artist = artistEls[0].textContent.trim();
             }
             var pauseBtn = document.querySelector('[aria-label="Pause"]');
-            var isPlaying = pauseBtn !== null;
+            var playBtn = document.querySelector('[aria-label="Playback"]');
+            var isPlaying = pauseBtn !== null && playBtn === null;
             return JSON.stringify({title: title, artist: artist, playing: isPlaying});
         })()
         """

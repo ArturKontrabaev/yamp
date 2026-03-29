@@ -244,19 +244,7 @@ class MenubarController: NSObject {
     // MARK: - Actions
 
     @objc private func togglePlayPause() {
-        // Find the play/pause button in the controls area
-        CDPEval.run(js: """
-        (function() {
-            var btns = document.querySelectorAll('[class*="BaseSonataControlsDesktop_sonataButtons"] button');
-            for (var b of btns) {
-                var a = b.getAttribute('aria-label') || '';
-                if (a === 'Play' || a === 'Pause') { b.click(); return 'clicked:' + a; }
-            }
-            var fallback = document.querySelector('[aria-label="Play"]') || document.querySelector('[aria-label="Pause"]');
-            if (fallback) { fallback.click(); return 'fallback'; }
-            return 'not found';
-        })()
-        """) { _ in }
+        CDPEval.run(js: "(document.querySelector('[aria-label=\"Playback\"]') || document.querySelector('[aria-label=\"Pause\"]'))?.click()") { _ in }
     }
 
     @objc private func nextTrack() {
