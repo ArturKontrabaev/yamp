@@ -27,6 +27,7 @@ swiftc \
     -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" \
     YAMP/main.swift \
     YAMP/Track.swift \
+    YAMP/Settings.swift \
     YAMP/NowPlayingTrackProvider.swift \
     YAMP/MenubarController.swift \
     YAMP/AppDelegate.swift

@@ -21,11 +21,10 @@ struct Track {
         return artist
     }
 
-    var truncatedDisplay: String {
-        let max = 30
+    func truncatedDisplay(maxLength: Int) -> String {
         let s = displayString
-        if s.count <= max { return s }
-        return String(s.prefix(max - 1)) + "…"
+        if s.count <= maxLength { return s }
+        return String(s.prefix(maxLength - 1)) + "…"
     }
 
     static let empty = Track(title: "", artist: "", isPlaying: false)

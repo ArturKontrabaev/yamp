@@ -12,7 +12,8 @@ class MenubarController {
     }
 
     func update(with track: Track) {
-        let newDisplay = track.title.isEmpty ? "♪" : "⏵ \(track.truncatedDisplay)"
+        let maxLen = Settings.shared.maxDisplayLength
+        let newDisplay = track.title.isEmpty ? "♪" : "⏵ \(track.truncatedDisplay(maxLength: maxLen))"
         if statusItem.button?.title != newDisplay {
             statusItem.button?.title = newDisplay
         }
@@ -60,6 +61,23 @@ class MenubarController {
 
         menu.addItem(NSMenuItem.separator())
 
+        // Settings submenu
+        let settingsItem = NSMenuItem(title: "Max length: \(Settings.shared.maxDisplayLength)", action: nil, keyEquivalent: "")
+        let settingsMenu = NSMenu()
+        for len in [15, 20, 25, 30, 40, 50] {
+            let item = NSMenuItem(title: "\(len) chars", action: #selector(setMaxLength(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = len
+            if len == Settings.shared.maxDisplayLength {
+                item.state = .on
+            }
+            settingsMenu.addItem(item)
+        }
+        settingsItem.submenu = settingsMenu
+        menu.addItem(settingsItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -79,6 +97,11 @@ class MenubarController {
 
     @objc private func prevTrack() {
         CDPCommand.execute(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] button[title*=\"Предыдущ\"], [class*=\"PlayerBarDesktop\"] button[title*=\"Prev\"], [class*=\"ControlButton\"][title*=\"Предыдущ\"], [class*=\"ControlButton\"][title*=\"Prev\"]')?.click()")
+    }
+
+    @objc private func setMaxLength(_ sender: NSMenuItem) {
+        Settings.shared.maxDisplayLength = sender.tag
+        update(with: currentTrack)
     }
 
     @objc private func openYandexMusic() {
