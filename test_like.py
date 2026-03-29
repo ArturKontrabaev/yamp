@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Like button state"""
+"""Check Like button state — full innerHTML"""
 import json, urllib.request, socket, os, struct, base64
 
 def ws_connect(url):
@@ -46,7 +46,6 @@ def ws_recv(s):
 
 pages = json.loads(urllib.request.urlopen("http://localhost:9222/json").read())
 wsu = [p["webSocketDebuggerUrl"] for p in pages if p.get("type") == "page" and "music" in p.get("url", "")][0]
-
 s = ws_connect(wsu)
 
 js = """
@@ -55,14 +54,7 @@ js = """
     if (!bar) return 'NO BAR';
     var btn = bar.querySelector('[aria-label="Like"]');
     if (!btn) return 'NO LIKE BUTTON';
-    var svg = btn.querySelector('svg');
-    var svgClass = svg ? svg.getAttribute('class') || '' : 'no svg';
-    var svgFill = svg ? svg.getAttribute('fill') || '' : '';
-    var path = btn.querySelector('path');
-    var pathFill = path ? path.getAttribute('fill') || '' : 'no path';
-    var pathD = path ? (path.getAttribute('d') || '').substring(0, 50) : '';
-    var btnClass = btn.className;
-    return 'btn-class: ' + btnClass + '\\nsvg-class: ' + svgClass + '\\nsvg-fill: ' + svgFill + '\\npath-fill: ' + pathFill + '\\npath-d: ' + pathD;
+    return btn.innerHTML;
 })()
 """
 
@@ -70,6 +62,4 @@ msg = json.dumps({"id": 1, "method": "Runtime.evaluate", "params": {"expression"
 ws_send(s, msg)
 res = json.loads(ws_recv(s))
 s.close()
-
-val = res.get("result", {}).get("result", {}).get("value", "")
-print(val)
+print(res.get("result", {}).get("result", {}).get("value", ""))
