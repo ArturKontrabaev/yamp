@@ -18,6 +18,7 @@ class NowPlayingPopover: NSView {
     private let nextButton = NSButton()
     private let likeButton = NSButton()
     private let settingsButton = NSButton()
+    private let quitButton = NSButton()
 
     weak var delegate: NowPlayingPopoverDelegate?
 
@@ -67,8 +68,11 @@ class NowPlayingPopover: NSView {
         makeBtn(playPauseButton, "▶", x: 108, y: y, sz: sz, action: #selector(playPauseTap), fontSize: 18)
         makeBtn(nextButton, "⏭", x: 146, y: y, sz: sz, action: #selector(nextTap), fontSize: 14)
         makeBtn(likeButton, "♡", x: 192, y: y, sz: sz, action: #selector(likeTap), fontSize: 16)
-        makeBtn(settingsButton, "⚙", x: 248, y: y, sz: 24, action: #selector(settingsTap), fontSize: 13)
+        makeBtn(settingsButton, "⚙", x: 236, y: y, sz: 24, action: #selector(settingsTap), fontSize: 13)
         settingsButton.frame.origin.y = y + 3
+        makeBtn(quitButton, "✕", x: 266, y: y, sz: 24, action: #selector(quitTap), fontSize: 12)
+        quitButton.frame.origin.y = y + 3
+        quitButton.contentTintColor = NSColor.secondaryLabelColor
     }
 
     private func makeBtn(_ btn: NSButton, _ title: String, x: CGFloat, y: CGFloat, sz: CGFloat, action: Selector, fontSize: CGFloat) {
@@ -113,4 +117,5 @@ class NowPlayingPopover: NSView {
     @objc private func nextTap() { delegate?.didTapNext() }
     @objc private func likeTap() { delegate?.didTapLike() }
     @objc private func settingsTap() { delegate?.didTapSettings() }
+    @objc private func quitTap() { NSApp.terminate(nil) }
 }
