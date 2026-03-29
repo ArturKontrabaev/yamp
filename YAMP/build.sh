@@ -25,6 +25,7 @@ swiftc \
     -import-objc-header /dev/null \
     -framework AppKit \
     -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" \
+    YAMP/main.swift \
     YAMP/Track.swift \
     YAMP/NowPlayingTrackProvider.swift \
     YAMP/MenubarController.swift \
