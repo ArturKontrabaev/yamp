@@ -54,8 +54,7 @@ class SettingsWindow {
         let iconPopup = NSPopUpButton(frame: NSRect(x: 150, y: y - 2, width: 180, height: 24))
         let currentIcon = Settings.shared.menuBarIcon
         for opt in Settings.iconOptions {
-            let prefix = opt.isSFSymbol ? "" : "\(opt.id) "
-            iconPopup.addItem(withTitle: "\(prefix)\(opt.label)")
+            iconPopup.addItem(withTitle: opt.label)
             if opt.id == currentIcon {
                 iconPopup.selectItem(at: iconPopup.numberOfItems - 1)
             }

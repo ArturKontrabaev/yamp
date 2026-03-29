@@ -22,12 +22,12 @@ class Settings {
 
     static let iconOptions: [(id: String, label: String, isSFSymbol: Bool)] = [
         ("music.quarternote.3", "Now Playing", true),
-        ("music.note", "Music Note", true),
+        ("music.note", "Note", true),
         ("headphones", "Headphones", true),
         ("waveform", "Waveform", true),
         ("guitars", "Guitar", true),
-        ("♪", "♪ Text", false),
-        ("Y", "Y (Yandex)", false),
+        ("♪", "♪", false),
+        ("Y", "Y", false),
     ]
 
     private init() {

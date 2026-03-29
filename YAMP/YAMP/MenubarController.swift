@@ -37,11 +37,15 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         let iconId = Settings.shared.menuBarIcon
         let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
         if opt.isSFSymbol {
-            let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")
+            let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+            let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")?.withSymbolConfiguration(config)
             img?.isTemplate = true
             statusItem.button?.image = img
+            statusItem.button?.title = ""
         } else {
             statusItem.button?.image = nil
+            statusItem.button?.title = opt.id
+            statusItem.button?.font = NSFont.systemFont(ofSize: 16, weight: .bold)
         }
     }
 
@@ -54,12 +58,14 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
             let opt = Settings.iconOptions.first { $0.id == iconId } ?? Settings.iconOptions[0]
             if opt.isSFSymbol {
                 statusItem.button?.title = ""
-                let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")
+                let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+                let img = NSImage(systemSymbolName: opt.id, accessibilityDescription: "YAMP")?.withSymbolConfiguration(config)
                 img?.isTemplate = true
                 statusItem.button?.image = img
             } else {
                 statusItem.button?.image = nil
                 statusItem.button?.title = opt.id
+                statusItem.button?.font = NSFont.systemFont(ofSize: 16, weight: .bold)
             }
         } else {
             statusItem.button?.image = nil
