@@ -86,7 +86,7 @@ class MenubarController: NSObject {
 
         let buttonFrame = buttonWindow.frame
 
-        let panelWidth: CGFloat = 100
+        let panelWidth: CGFloat = 130
         let panelHeight: CGFloat = 32
         let panelX = buttonFrame.midX - panelWidth / 2
         let panelY = buttonFrame.minY - panelHeight
@@ -110,11 +110,13 @@ class MenubarController: NSObject {
 
         let prevBtn = makeButton(title: "⏮", x: 5, action: #selector(prevTrack))
         let playBtn = makeButton(title: "⏵⏸", x: 35, action: #selector(togglePlayPause))
-        let nextBtn = makeButton(title: "⏭", x: 70, action: #selector(nextTrack))
+        let nextBtn = makeButton(title: "⏭", x: 65, action: #selector(nextTrack))
+        let likeBtn = makeButton(title: "♡", x: 95, action: #selector(likeTrack))
 
         contentView.addSubview(prevBtn)
         contentView.addSubview(playBtn)
         contentView.addSubview(nextBtn)
+        contentView.addSubview(likeBtn)
 
         panel.contentView = contentView
 
@@ -194,6 +196,10 @@ class MenubarController: NSObject {
         prev.target = self
         menu.addItem(prev)
 
+        let like = NSMenuItem(title: "♡  Like", action: #selector(likeTrack), keyEquivalent: "l")
+        like.target = self
+        menu.addItem(like)
+
         menu.addItem(NSMenuItem.separator())
 
         // Lyrics
@@ -238,15 +244,19 @@ class MenubarController: NSObject {
     // MARK: - Actions
 
     @objc private func togglePlayPause() {
-        CDPEval.run(js: "document.querySelector('.player-controls__btn_play, [class*=\"PlayerBarDesktop\"] [class*=\"Play\"] button, [class*=\"ControlButton\"][class*=\"Play\"]')?.click() || document.querySelector('button[class*=\"play\"], button[class*=\"Play\"]')?.click()") { _ in }
+        CDPEval.run(js: "(document.querySelector('[aria-label=\"Play\"]') || document.querySelector('[aria-label=\"Pause\"]'))?.click()") { _ in }
     }
 
     @objc private func nextTrack() {
-        CDPEval.run(js: "document.querySelector('.player-controls__btn_next, [class*=\"ControlButton\"][title*=\"Следующ\"], [class*=\"ControlButton\"][title*=\"Next\"], button[title*=\"Следующ\"], button[title*=\"Next\"]')?.click()") { _ in }
+        CDPEval.run(js: "document.querySelector('[aria-label=\"Next song\"]')?.click()") { _ in }
     }
 
     @objc private func prevTrack() {
-        CDPEval.run(js: "document.querySelector('.player-controls__btn_prev, [class*=\"ControlButton\"][title*=\"Предыдущ\"], [class*=\"ControlButton\"][title*=\"Prev\"], button[title*=\"Предыдущ\"], button[title*=\"Prev\"]')?.click()") { _ in }
+        CDPEval.run(js: "document.querySelector('[aria-label=\"Previous song\"]')?.click()") { _ in }
+    }
+
+    @objc private func likeTrack() {
+        CDPEval.run(js: "document.querySelector('[aria-label=\"Like\"]')?.click()") { _ in }
     }
 
     @objc private func showLyrics() {

@@ -50,22 +50,22 @@ class NowPlayingTrackProvider {
         (function() {
             var title = '';
             var artist = '';
-            var titleEl = document.querySelector('[class*="PlayerBarDesktop_title"] a')
-                || document.querySelector('[class*="PlayerBar"] [class*="title"] a');
-            if (titleEl) title = titleEl.textContent.trim();
-            var artistEl = document.querySelector('[class*="PlayerBarDesktop_artist"] a')
-                || document.querySelector('[class*="PlayerBar"] [class*="artist"] a');
-            if (artistEl) artist = artistEl.textContent.trim();
-            var playBtn = document.querySelector('[class*="PlayerBarDesktop"] [class*="Play"]')
-                || document.querySelector('[class*="player"] [class*="pause"]');
-            var isPlaying = false;
-            if (playBtn) {
-                var cls = playBtn.className || '';
-                var ariaLabel = playBtn.getAttribute('aria-label') || '';
-                isPlaying = cls.includes('pause') || cls.includes('Pause')
-                    || ariaLabel.includes('Pause') || ariaLabel.includes('пауз');
+            var titleEl = document.querySelector('[class*="Meta_titleContainer"] a')
+                || document.querySelector('[class*="PlayerBarDesktop"] [class*="Meta_albumLink"]');
+            if (titleEl) {
+                var ariaT = titleEl.getAttribute('aria-label') || '';
+                if (ariaT.startsWith('Track ')) title = ariaT.substring(6);
+                else title = titleEl.textContent.trim();
             }
-            return JSON.stringify({title: title, artist: artist, playing: isPlaying || title !== ''});
+            var artistEls = document.querySelectorAll('[class*="PlayerBarDesktop"] [class*="Meta_text"] [class*="Meta_link"]');
+            if (artistEls.length > 0) {
+                var ariaA = artistEls[0].getAttribute('aria-label') || '';
+                if (ariaA.startsWith('Artist ')) artist = ariaA.substring(7);
+                else artist = artistEls[0].textContent.trim();
+            }
+            var pauseBtn = document.querySelector('[aria-label="Pause"]');
+            var isPlaying = pauseBtn !== null;
+            return JSON.stringify({title: title, artist: artist, playing: isPlaying});
         })()
         """
 
