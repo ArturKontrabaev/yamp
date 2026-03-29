@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install CDP wrapper for Yandex Music
-APP_DIR="/Applications/Яндекс Музыка.app/Contents/MacOS"
+APP_DIR="/Applications/YandexMusic.app/Contents/MacOS"
 BINARY="$APP_DIR/Яндекс Музыка"
 ORIG="$APP_DIR/Яндекс Музыка.orig"
 
