@@ -14,7 +14,7 @@ class SettingsWindow {
         }
 
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 390),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -25,7 +25,7 @@ class SettingsWindow {
 
         let cv = NSView(frame: w.contentView!.bounds)
 
-        var y: CGFloat = 320
+        var y: CGFloat = 350
 
         // Display length
         let label = NSTextField(labelWithString: "Max display length:")
@@ -108,6 +108,12 @@ class SettingsWindow {
         y -= 36
 
         // Quit
+        // Launch at login
+        let loginCheck = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(loginToggled(_:)))
+        loginCheck.frame = NSRect(x: 20, y: 52, width: 200, height: 20)
+        loginCheck.state = Settings.shared.launchAtLogin ? .on : .off
+        cv.addSubview(loginCheck)
+
         let quitBtn = NSButton(title: "Quit YAMP", target: self, action: #selector(quit))
         quitBtn.frame = NSRect(x: 20, y: 12, width: 100, height: 32)
         quitBtn.bezelStyle = .rounded
@@ -143,6 +149,24 @@ class SettingsWindow {
             // Notify to update icon immediately
             NotificationCenter.default.post(name: NSNotification.Name("YAMPIconChanged"), object: nil)
         }
+    }
+
+    @objc private func loginToggled(_ sender: NSButton) {
+        let enable = sender.state == .on
+        Settings.shared.launchAtLogin = enable
+
+        // Add/remove login item via osascript
+        let script: String
+        if enable {
+            let appPath = Bundle.main.bundlePath
+            script = "tell application \"System Events\" to make login item at end with properties {path:\"\(appPath)\", hidden:false}"
+        } else {
+            script = "tell application \"System Events\" to delete login item \"YAMP\""
+        }
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        proc.arguments = ["-e", script]
+        try? proc.run()
     }
 
     @objc private func hideToggled(_ sender: NSButton) {

@@ -15,6 +15,11 @@ class Settings {
         set { defaults.set(newValue, forKey: "hideTrackOnPause") }
     }
 
+    var launchAtLogin: Bool {
+        get { defaults.bool(forKey: "launchAtLogin") }
+        set { defaults.set(newValue, forKey: "launchAtLogin") }
+    }
+
     var menuBarIcon: String {
         get { defaults.string(forKey: "menuBarIcon") ?? "music.quarternote.3" }
         set { defaults.set(newValue, forKey: "menuBarIcon") }

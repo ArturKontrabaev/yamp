@@ -14,16 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         HotkeyManager.shared.registerAll()
 
-        // Cmd+Q to quit globally
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "q" {
-                NSApp.terminate(nil)
-                return nil
-            }
-            return event
-        }
-
-        // Cmd+Q via menu
+        // Cmd+Q via app menu (works when popover/settings are focused)
         let quitItem = NSMenuItem(title: "Quit YAMP", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenu = NSMenu()
         appMenu.addItem(quitItem)
