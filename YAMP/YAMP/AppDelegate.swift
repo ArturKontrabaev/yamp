@@ -6,11 +6,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        print("YAMP: starting...")
         trackProvider = NowPlayingTrackProvider()
+        print("YAMP: provider created")
         menubarController = MenubarController()
-
-        updateTrack()
+        print("YAMP: menubar created")
         startPolling()
+        print("YAMP: polling started")
     }
 
     private func startPolling() {
