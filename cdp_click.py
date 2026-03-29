@@ -35,6 +35,7 @@ COMMANDS = {
     "next": """document.querySelector('[class*="PlayerBarDesktop"] [aria-label="Next song"]')?.click()""",
     "prev": """document.querySelector('[class*="PlayerBarDesktop"] [aria-label="Previous song"]')?.click()""",
     "like": """(function(){var bar=document.querySelector('[class*="PlayerBarDesktop"]');if(!bar)return;var btn=bar.querySelector('[aria-label="Like"]');if(!btn)return;var use=btn.querySelector('use');var href=(use&&(use.getAttribute('xlink:href')||use.getAttribute('href')))||'';if(href.includes('liked'))return 'already liked';btn.click();return 'liked'})()""",
+    "dislike": """document.querySelector('[class*="PlayerBarDesktop"] [aria-label="I don\\'t like it"]')?.click()""",
 }
 
 if __name__ == "__main__":

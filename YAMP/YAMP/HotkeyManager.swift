@@ -9,6 +9,7 @@ class HotkeyManager {
         case next = "next"
         case prev = "prev"
         case like = "like"
+        case dislike = "dislike"
 
         var displayName: String {
             switch self {
@@ -16,6 +17,7 @@ class HotkeyManager {
             case .next: return "Next Track"
             case .prev: return "Previous Track"
             case .like: return "Like"
+            case .dislike: return "Dislike (never play again)"
             }
         }
     }

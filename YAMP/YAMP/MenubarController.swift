@@ -75,6 +75,7 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         case .next: cdpCommand("next")
         case .prev: cdpCommand("prev")
         case .like: cdpCommand("like")
+        case .dislike: cdpCommand("dislike")
         }
     }
 
