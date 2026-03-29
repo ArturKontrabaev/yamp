@@ -96,19 +96,19 @@ class NowPlayingTrackProvider {
             let msg: [String: Any] = [
                 "id": 1,
                 "method": "Runtime.evaluate",
-                "params": ["expression": js, "returnByValue": true]
+                "params": ["expression": js, "returnByValue": true] as [String : Any]
             ]
 
             guard let msgData = try? JSONSerialization.data(withJSONObject: msg),
                   let msgStr = String(data: msgData, encoding: .utf8) else {
-                sock.close()
+                try? sock.close()
                 completion(.empty)
                 return
             }
 
             self.wsSend(sock: sock, text: msgStr)
             let response = self.wsRecv(sock: sock)
-            sock.close()
+            try? sock.close()
 
             guard let respData = response.data(using: .utf8),
                   let respObj = try? JSONSerialization.jsonObject(with: respData) as? [String: Any],
