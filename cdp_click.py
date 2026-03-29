@@ -30,10 +30,21 @@ def ws_send(s, t):
     f.extend(bytearray(b ^ m[i % 4] for i, b in enumerate(p)))
     s.send(f)
 
+COMMANDS = {
+    "play": """(function(){var bar=document.querySelector('[class*="PlayerBarDesktop"]');if(!bar)return;var btn=bar.querySelector('[aria-label="Playback"]')||bar.querySelector('[aria-label="Pause"]');if(btn)btn.click();})()""",
+    "next": """document.querySelector('[class*="PlayerBarDesktop"] [aria-label="Next song"]')?.click()""",
+    "prev": """document.querySelector('[class*="PlayerBarDesktop"] [aria-label="Previous song"]')?.click()""",
+    "like": """document.querySelector('[class*="PlayerBarDesktop"] [aria-label="Like"]')?.click()""",
+}
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
+        print("Usage: cdp_click.py [play|next|prev|like]")
         exit(1)
-    js = sys.argv[1]
+
+    cmd = sys.argv[1]
+    js = COMMANDS.get(cmd, cmd)
+
     try:
         pages = json.loads(urllib.request.urlopen("http://localhost:9222/json", timeout=3).read())
         wsu = [p["webSocketDebuggerUrl"] for p in pages if p.get("type") == "page" and "music" in p.get("url", "")]

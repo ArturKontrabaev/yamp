@@ -65,36 +65,22 @@ class MenubarController: NSObject {
         statusItem.menu = menu
     }
 
-    private func cdpClick(ariaLabel: String) {
+    private func cdpCommand(_ cmd: String) {
         DispatchQueue.global().async {
-            let js = "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"\(ariaLabel)\"]')?.click()"
             let scriptPath = NSHomeDirectory() + "/yamp/cdp_click.py"
-
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = ["python3", scriptPath, js]
+            process.arguments = ["python3", scriptPath, cmd]
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
             try? process.run()
         }
     }
 
-    @objc private func togglePlayPause() {
-        DispatchQueue.global().async {
-            let js = "(document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Playback\"]') || document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Pause\"]'))?.click()"
-            let scriptPath = NSHomeDirectory() + "/yamp/cdp_click.py"
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = ["python3", scriptPath, js]
-            process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
-            try? process.run()
-        }
-    }
-
-    @objc private func nextTrack() { cdpClick(ariaLabel: "Next song") }
-    @objc private func prevTrack() { cdpClick(ariaLabel: "Previous song") }
-    @objc private func likeTrack() { cdpClick(ariaLabel: "Like") }
+    @objc private func togglePlayPause() { cdpCommand("play") }
+    @objc private func nextTrack() { cdpCommand("next") }
+    @objc private func prevTrack() { cdpCommand("prev") }
+    @objc private func likeTrack() { cdpCommand("like") }
 
     @objc private func quit() { NSApp.terminate(nil) }
 }
