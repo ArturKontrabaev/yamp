@@ -244,19 +244,19 @@ class MenubarController: NSObject {
     // MARK: - Actions
 
     @objc private func togglePlayPause() {
-        CDPConnection.shared.evaluate(js: "(document.querySelector('[aria-label=\"Playback\"]') || document.querySelector('[aria-label=\"Pause\"]'))?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "(document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Playback\"]') || document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Pause\"]'))?.click()") { _ in }
     }
 
     @objc private func nextTrack() {
-        CDPConnection.shared.evaluate(js: "document.querySelector('[aria-label=\"Next song\"]')?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Next song\"]')?.click()") { _ in }
     }
 
     @objc private func prevTrack() {
-        CDPConnection.shared.evaluate(js: "document.querySelector('[aria-label=\"Previous song\"]')?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Previous song\"]')?.click()") { _ in }
     }
 
     @objc private func likeTrack() {
-        CDPConnection.shared.evaluate(js: "document.querySelector('[aria-label=\"Like\"]')?.click()") { _ in }
+        CDPConnection.shared.evaluate(js: "document.querySelector('[class*=\"PlayerBarDesktop\"] [aria-label=\"Like\"]')?.click()") { _ in }
     }
 
     @objc private func showLyrics() {
