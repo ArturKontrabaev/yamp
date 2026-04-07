@@ -103,7 +103,6 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     // MARK: - Toast in menubar
 
     private func showToast(_ text: String) {
-        NSSound.beep()
         toastWork?.cancel()
         isShowingToast = true
         statusItem.button?.title = text
