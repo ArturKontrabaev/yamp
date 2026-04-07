@@ -1,27 +1,38 @@
-# YAMP — Yandex Music Player (menubar app)
+# YAMP — Yandex Music Player
 
 ## Последнее обновление
 2026-03-29
 
 ## Статус
-MVP работает — показывает трек в menu bar. Артур решил что системный Now Playing достаточно, кроме функции "добавить в избранное".
+Стабильная рабочая версия. Опубликован на GitHub.
 
-## Что сделано
-- Исследовали все способы получения трека (MediaRemote, Accessibility, window title, distributed notifications — всё заблокировано на macOS 26 Tahoe)
-- Нашли рабочий подход: Chrome DevTools Protocol через `--remote-debugging-port=9222`
-- MVP: menubar app показывает трек, есть hover-панель с кнопками, настройки длины
-- Playback controls через CDP (нужно доработать селекторы)
-- Репо: https://github.com/ArturKontrabaev/yamp
+## Что работает
+- Показ трека в menu bar (артист — название)
+- Now Playing popover (обложка, трек, артист, кнопки)
+- Play/Pause, Next, Previous, Like, Dislike через CDP
+- Глобальные настраиваемые хоткеи
+- Выбор иконки menu bar
+- Настройка размера шрифта
+- Hide track on pause
+- Launch at login
+- Автоматическая обёртка для Яндекс Музыки (CDP всегда включен)
+- Авто-переустановка обёртки при обновлении ЯМ
+- Кнопка Quit в попover
+- Like только добавляет (не убирает)
+- Определение liked state через SVG xlink:href
+
+## Репо
+https://github.com/ArturKontrabaev/yamp
+
+## Стабильный коммит
+90ed388 — "auto-reinstall CDP wrapper if Yandex Music was updated"
 
 ## Что не доделано
-- Кнопки play/pause/next/prev — нужны правильные CSS-селекторы из DOM
-- Hover-панель — кнопки кликаются но действия не срабатывают (селекторы)
-- Lyrics — заготовка есть, нужно найти селектор
-- Добавление в избранное — основная недостающая фичa vs системный Now Playing
-- GitHub Actions для автосборки (токену не хватает workflow scope)
-- Запуск Яндекс Музыки с --remote-debugging-port автоматически
+- Раздельный размер иконки и шрифта (сломалось, откатили)
+- Cmd+Q (убивает другие приложения, нужно переделать)
+- Иконка приложения (в Dock/Launchpad)
+- Прогресс-бар (сломал базовый функционал, откатили)
+- Автосборка через GitHub Actions (токену не хватает workflow scope)
 
-## Техническое
-- Сборка: `cd YAMP && chmod +x build.sh && ./build.sh && open build/YAMP.app`
-- Требует: `killall "Яндекс Музыка"; open -a "Яндекс Музыка" --args --remote-debugging-port=9222`
-- macOS 26 Tahoe, Swift 5.8, без Xcode (только Command Line Tools)
+## Сборка
+cd ~/yamp/YAMP && chmod +x build.sh && ./build.sh && sudo cp -R build/YAMP.app /Applications/YAMP.app
