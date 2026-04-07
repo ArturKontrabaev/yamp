@@ -159,7 +159,7 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         case .prev: cdpCommand("prev")
         case .like:
             cdpCommand("like")
-            sendNotification("♥ Добавлено в избранное")
+            sendNotification("♥ \(currentTrack.displayString.isEmpty ? "Добавлено в избранное" : currentTrack.displayString)")
         case .dislike:
             cdpCommand("dislike")
             sendNotification("👎 Дизлайк")
