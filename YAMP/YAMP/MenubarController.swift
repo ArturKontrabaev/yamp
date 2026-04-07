@@ -144,8 +144,12 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         case .playPause: cdpCommand("play")
         case .next: cdpCommand("next")
         case .prev: cdpCommand("prev")
-        case .like: cdpCommand("like")
-        case .dislike: cdpCommand("dislike")
+        case .like:
+            cdpCommand("like")
+            ToastWindow.show("Добавлено в избранное", icon: "♥", near: statusItem)
+        case .dislike:
+            cdpCommand("dislike")
+            ToastWindow.show("Дизлайк", icon: "👎", near: statusItem)
         }
     }
 
@@ -154,7 +158,10 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     func didTapPlayPause() { cdpCommand("play") }
     func didTapNext() { cdpCommand("next") }
     func didTapPrev() { cdpCommand("prev") }
-    func didTapLike() { cdpCommand("like") }
+    func didTapLike() {
+        cdpCommand("like")
+        ToastWindow.show("Добавлено в избранное", icon: "♥", near: statusItem)
+    }
     func didTapSettings() {
         popover.performClose(nil)
         settingsWindow.show()
