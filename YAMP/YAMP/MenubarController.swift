@@ -1,14 +1,13 @@
 import Cocoa
+import UserNotifications
 
-class MenubarController: NSObject, NowPlayingPopoverDelegate {
+class MenubarController: NSObject, NowPlayingPopoverDelegate, UNUserNotificationCenterDelegate {
     private let statusItem: NSStatusItem
     private var currentTrack: Track = .empty
     private let popover = NSPopover()
     private let popoverView: NowPlayingPopover
     private var eventMonitor: Any?
     private let settingsWindow = SettingsWindow()
-    private var toastWork: DispatchWorkItem?
-    private var isShowingToast = false
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -33,6 +32,17 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         NotificationCenter.default.addObserver(forName: NSNotification.Name("YAMPIconChanged"), object: nil, queue: .main) { [weak self] _ in
             self?.applyIcon()
         }
+
+        let nc = UNUserNotificationCenter.current()
+        nc.delegate = self
+        nc.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    // Show notification even when app is foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler handler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        handler([.banner, .sound])
     }
 
     func applyIcon() {
@@ -55,7 +65,6 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     func update(with track: Track) {
         currentTrack = track
         popoverView.update(with: track)
-        if isShowingToast { return }
 
         let maxLen = Settings.shared.maxDisplayLength
         let showIcon = track.title.isEmpty || (!track.isPlaying && Settings.shared.hideTrackOnPause)
@@ -100,19 +109,14 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         }
     }
 
-    // MARK: - Toast in menubar
+    // MARK: - Notifications
 
-    private func showToast(_ text: String) {
-        toastWork?.cancel()
-        isShowingToast = true
-        statusItem.button?.title = text
-        let work = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            self.isShowingToast = false
-            self.update(with: self.currentTrack)
-        }
-        toastWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: work)
+    private func sendNotification(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 
     // MARK: - CDP commands
@@ -165,10 +169,10 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         case .prev: cdpCommand("prev")
         case .like:
             cdpCommand("like")
-            showToast("♥ Добавлено в избранное")
+            sendNotification(title: "YAMP", body: "♥ Добавлено в избранное")
         case .dislike:
             cdpCommand("dislike")
-            showToast("👎 Дизлайк")
+            sendNotification(title: "YAMP", body: "👎 Дизлайк")
         }
     }
 
