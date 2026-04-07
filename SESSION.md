@@ -1,7 +1,7 @@
 # YAMP — Yandex Music Player
 
 ## Последнее обновление
-2026-03-29
+2026-04-07
 
 ## Статус
 Стабильная рабочая версия. Опубликован на GitHub.
@@ -20,12 +20,10 @@
 - Кнопка Quit в попover
 - Like только добавляет (не убирает)
 - Определение liked state через SVG xlink:href
+- **Уведомления через Notification Center** (osascript) — при лайке показывает ♥ Артист — Трек, при дизлайке 👎
 
 ## Репо
 https://github.com/ArturKontrabaev/yamp
-
-## Стабильный коммит
-90ed388 — "auto-reinstall CDP wrapper if Yandex Music was updated"
 
 ## Что не доделано
 - Раздельный размер иконки и шрифта (сломалось, откатили)
@@ -35,4 +33,7 @@ https://github.com/ArturKontrabaev/yamp
 - Автосборка через GitHub Actions (токену не хватает workflow scope)
 
 ## Сборка
-cd ~/yamp/YAMP && chmod +x build.sh && ./build.sh && sudo cp -R build/YAMP.app /Applications/YAMP.app
+killall YAMP; cd ~/yamp && git pull && cd YAMP && ./build.sh && open build/YAMP.app
+
+Для установки в /Applications:
+killall YAMP; cd ~/yamp && git pull && cd YAMP && ./build.sh && sudo cp -R build/YAMP.app /Applications/YAMP.app && open /Applications/YAMP.app
