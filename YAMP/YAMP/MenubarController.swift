@@ -7,6 +7,7 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     private let popoverView: NowPlayingPopover
     private var eventMonitor: Any?
     private let settingsWindow = SettingsWindow()
+    private var toastWork: DispatchWorkItem?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -96,6 +97,19 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         }
     }
 
+    // MARK: - Toast in menubar
+
+    private func showToast(_ text: String) {
+        toastWork?.cancel()
+        statusItem.button?.title = text
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.update(with: self.currentTrack)
+        }
+        toastWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: work)
+    }
+
     // MARK: - CDP commands
 
     private func cdpCommand(_ cmd: String) {
@@ -146,10 +160,10 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
         case .prev: cdpCommand("prev")
         case .like:
             cdpCommand("like")
-            ToastWindow.show("Добавлено в избранное", icon: "♥", near: statusItem)
+            showToast("♥ Добавлено в избранное")
         case .dislike:
             cdpCommand("dislike")
-            ToastWindow.show("Дизлайк", icon: "👎", near: statusItem)
+            showToast("👎 Дизлайк")
         }
     }
 
@@ -160,7 +174,7 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     func didTapPrev() { cdpCommand("prev") }
     func didTapLike() {
         cdpCommand("like")
-        ToastWindow.show("Добавлено в избранное", icon: "♥", near: statusItem)
+        showToast("♥ Добавлено в избранное")
     }
     func didTapSettings() {
         popover.performClose(nil)

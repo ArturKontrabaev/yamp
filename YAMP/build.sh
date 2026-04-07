@@ -20,7 +20,6 @@ swiftc \
     YAMP/NowPlayingPopover.swift \
     YAMP/HotkeyManager.swift \
     YAMP/SettingsWindow.swift \
-    YAMP/ToastWindow.swift \
     YAMP/MenubarController.swift \
     YAMP/AppDelegate.swift
 echo ""
