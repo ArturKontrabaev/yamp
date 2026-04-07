@@ -1,88 +1,96 @@
 import Cocoa
 
-class ToastWindow: NSWindow {
+class ToastWindow: NSPanel {
     private static var current: ToastWindow?
-    private var hideTimer: Timer?
+    private var hideWork: DispatchWorkItem?
 
     static func show(_ message: String, icon: String = "♥", near statusItem: NSStatusItem? = nil) {
-        // Dismiss previous toast
-        current?.close()
+        DispatchQueue.main.async {
+            current?.orderOut(nil)
+            current = nil
 
-        let toast = ToastWindow(message: message, icon: icon)
-        current = toast
+            let toast = ToastWindow(message: message, icon: icon)
+            current = toast
 
-        // Position below menubar, centered on screen or near status item
-        if let button = statusItem?.button, let buttonWindow = button.window {
-            let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
-            let x = buttonRect.midX - toast.frame.width / 2
-            let y = buttonRect.minY - toast.frame.height - 4
-            toast.setFrameOrigin(NSPoint(x: x, y: y))
-        } else {
-            guard let screen = NSScreen.main else { return }
-            let x = screen.frame.midX - toast.frame.width / 2
-            let y = screen.frame.maxY - 36 - toast.frame.height
-            toast.setFrameOrigin(NSPoint(x: x, y: y))
-        }
+            // Position below menubar
+            if let button = statusItem?.button,
+               let bw = button.window {
+                let rect = bw.convertToScreen(button.convert(button.bounds, to: nil))
+                toast.setFrameOrigin(NSPoint(
+                    x: rect.midX - toast.frame.width / 2,
+                    y: rect.minY - toast.frame.height - 4
+                ))
+            } else if let screen = NSScreen.main {
+                toast.setFrameOrigin(NSPoint(
+                    x: screen.frame.midX - toast.frame.width / 2,
+                    y: screen.visibleFrame.maxY - toast.frame.height - 8
+                ))
+            }
 
-        toast.alphaValue = 0
-        toast.orderFrontRegardless()
+            toast.alphaValue = 1.0
+            toast.orderFrontRegardless()
 
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            toast.animator().alphaValue = 1.0
-        }
-
-        toast.hideTimer = Timer.scheduledTimer(withTimeInterval: 1.8, repeats: false) { _ in
-            NSAnimationContext.runAnimationGroup({ ctx in
-                ctx.duration = 0.3
-                toast.animator().alphaValue = 0
-            }, completionHandler: {
-                toast.close()
-                if current === toast { current = nil }
-            })
+            let work = DispatchWorkItem {
+                NSAnimationContext.runAnimationGroup({ ctx in
+                    ctx.duration = 0.3
+                    toast.animator().alphaValue = 0
+                }, completionHandler: {
+                    toast.orderOut(nil)
+                    if current === toast { current = nil }
+                })
+            }
+            toast.hideWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: work)
         }
     }
 
     private init(message: String, icon: String) {
-        let padding: CGFloat = 12
-        let iconWidth: CGFloat = 24
+        let padding: CGFloat = 14
+        let iconWidth: CGFloat = 20
         let spacing: CGFloat = 6
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
 
         let textSize = (message as NSString).size(withAttributes: [.font: font])
-        let width = padding + iconWidth + spacing + textSize.width + padding
-        let height: CGFloat = 36
+        let width = ceil(padding + iconWidth + spacing + textSize.width + padding)
+        let height: CGFloat = 34
 
         let frame = NSRect(x: 0, y: 0, width: width, height: height)
-        super.init(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        super.init(contentRect: frame,
+                   styleMask: [.borderless, .nonactivatingPanel],
+                   backing: .buffered,
+                   defer: false)
 
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.level = .statusBar
+        self.level = .screenSaver
         self.hasShadow = true
         self.isReleasedWhenClosed = false
         self.ignoresMouseEvents = true
-        self.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        self.hidesOnDeactivate = false
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
 
-        let effect = NSVisualEffectView(frame: frame)
-        effect.material = .hudWindow
-        effect.state = .active
-        effect.wantsLayer = true
-        effect.layer?.cornerRadius = height / 2
-        effect.layer?.masksToBounds = true
+        let bg = NSView(frame: frame)
+        bg.wantsLayer = true
+        bg.layer?.cornerRadius = height / 2
+        bg.layer?.masksToBounds = true
+        bg.layer?.backgroundColor = NSColor(white: 0.15, alpha: 0.85).cgColor
 
         let iconLabel = NSTextField(labelWithString: icon)
-        iconLabel.font = NSFont.systemFont(ofSize: 16)
+        iconLabel.font = NSFont.systemFont(ofSize: 15)
+        iconLabel.textColor = .white
         iconLabel.frame = NSRect(x: padding, y: (height - 20) / 2, width: iconWidth, height: 20)
         iconLabel.alignment = .center
-        effect.addSubview(iconLabel)
+        bg.addSubview(iconLabel)
 
         let textLabel = NSTextField(labelWithString: message)
         textLabel.font = font
-        textLabel.textColor = .labelColor
-        textLabel.frame = NSRect(x: padding + iconWidth + spacing, y: (height - textSize.height) / 2, width: textSize.width, height: textSize.height)
-        effect.addSubview(textLabel)
+        textLabel.textColor = .white
+        textLabel.frame = NSRect(x: padding + iconWidth + spacing,
+                                  y: (height - textSize.height) / 2,
+                                  width: ceil(textSize.width),
+                                  height: ceil(textSize.height))
+        bg.addSubview(textLabel)
 
-        self.contentView = effect
+        self.contentView = bg
     }
 }
