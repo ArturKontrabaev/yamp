@@ -8,6 +8,7 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     private var eventMonitor: Any?
     private let settingsWindow = SettingsWindow()
     private var toastWork: DispatchWorkItem?
+    private var isShowingToast = false
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -52,6 +53,10 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
     }
 
     func update(with track: Track) {
+        currentTrack = track
+        popoverView.update(with: track)
+        if isShowingToast { return }
+
         let maxLen = Settings.shared.maxDisplayLength
         let showIcon = track.title.isEmpty || (!track.isPlaying && Settings.shared.hideTrackOnPause)
 
@@ -80,8 +85,6 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
             statusItem.button?.title = track.truncatedDisplay(maxLength: maxLen)
         }
         statusItem.button?.font = NSFont.systemFont(ofSize: fontSize, weight: .regular)
-        currentTrack = track
-        popoverView.update(with: track)
     }
 
     @objc private func statusItemClicked() {
@@ -101,9 +104,11 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate {
 
     private func showToast(_ text: String) {
         toastWork?.cancel()
+        isShowingToast = true
         statusItem.button?.title = text
         let work = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
+            self.isShowingToast = false
             self.update(with: self.currentTrack)
         }
         toastWork = work
