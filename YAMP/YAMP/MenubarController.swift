@@ -1,7 +1,6 @@
 import Cocoa
-import UserNotifications
 
-class MenubarController: NSObject, NowPlayingPopoverDelegate, UNUserNotificationCenterDelegate {
+class MenubarController: NSObject, NowPlayingPopoverDelegate {
     private let statusItem: NSStatusItem
     private var currentTrack: Track = .empty
     private let popover = NSPopover()
@@ -33,16 +32,6 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate, UNUserNotification
             self?.applyIcon()
         }
 
-        let nc = UNUserNotificationCenter.current()
-        nc.delegate = self
-        nc.requestAuthorization(options: [.alert, .sound]) { _, _ in }
-    }
-
-    // Show notification even when app is foreground
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler handler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        handler([.banner, .sound])
     }
 
     func applyIcon() {
@@ -111,12 +100,13 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate, UNUserNotification
 
     // MARK: - Notifications
 
-    private func sendNotification(title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+    private func sendNotification(_ body: String) {
+        DispatchQueue.global().async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", "display notification \"\(body)\" with title \"YAMP\""]
+            try? process.run()
+        }
     }
 
     // MARK: - CDP commands
@@ -169,10 +159,10 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate, UNUserNotification
         case .prev: cdpCommand("prev")
         case .like:
             cdpCommand("like")
-            sendNotification(title: "YAMP", body: "♥ Добавлено в избранное")
+            sendNotification("♥ Добавлено в избранное")
         case .dislike:
             cdpCommand("dislike")
-            sendNotification(title: "YAMP", body: "👎 Дизлайк")
+            sendNotification("👎 Дизлайк")
         }
     }
 
@@ -183,7 +173,7 @@ class MenubarController: NSObject, NowPlayingPopoverDelegate, UNUserNotification
     func didTapPrev() { cdpCommand("prev") }
     func didTapLike() {
         cdpCommand("like")
-        showToast("♥ Добавлено в избранное")
+        sendNotification("♥ Добавлено в избранное")
     }
     func didTapSettings() {
         popover.performClose(nil)
